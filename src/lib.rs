@@ -1,6 +1,6 @@
 //! # biquad
 //!
-//! A library for creating second order IIR filters for signal processing based on
+//! `biquad` is a library for creating second order IIR filters for signal processing based on
 //! [Biquads](https://en.wikipedia.org/wiki/Digital_biquad_filter). Both a
 //! Direct Form 1 (DF1) and Direct Form 2 Transposed (DF2T) implementation is
 //! available, where the DF1 is better used when the filter needs retuning
@@ -8,7 +8,7 @@
 //! while the DF2T is best used for static filters as it has the least
 //! computational complexity and best numerical stability.
 //!
-//! # Usage example
+//! # Examples
 //!
 //! ```
 //! fn main() {
@@ -36,6 +36,19 @@
 //!     }
 //! }
 //! ```
+//!
+//! # Errors
+//!
+//! `Coefficients::new(...)` can error if the cutoff frequency does not adhere to the
+//! [Nyquist Frequency](https://en.wikipedia.org/wiki/Nyquist_frequency), or if the Q value is
+//! negative.
+//!
+//! `Hertz::new(...)` can error if the frequency is negative.
+//!
+//! # Panics
+//!
+//! There are no panics in the library.
+//!
 
 #![no_std]
 
@@ -144,10 +157,10 @@ mod tests {
         let f3 = 10.mhz();
         let f4 = 10.dt();
 
-        assert_eq!(f1, Hertz::new(10.));
-        assert_eq!(f2, Hertz::new(10000.));
-        assert_eq!(f3, Hertz::new(10000000.));
-        assert_eq!(f4, Hertz::new(0.1));
+        assert_eq!(f1, Hertz::new(10.).unwrap());
+        assert_eq!(f2, Hertz::new(10000.).unwrap());
+        assert_eq!(f3, Hertz::new(10000000.).unwrap());
+        assert_eq!(f4, Hertz::new(0.1).unwrap());
 
         assert!(f1 < f2);
         assert!(f3 > f2);

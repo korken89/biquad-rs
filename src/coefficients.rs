@@ -14,7 +14,7 @@
 //! [Wikipedia article](https://en.wikipedia.org/wiki/Low-pass_filter#Discrete-time_realization).
 //!
 //!
-//! # Usage
+//! # Examples
 //!
 //! ```
 //! fn main() {
@@ -30,6 +30,12 @@
 //!     let coeffs = Coefficients::new(Type::LowPass, fs, f0, Q_BUTTERWORTH);
 //! }
 //! ```
+//!
+//! # Errors
+//!
+//! `Coefficients::new(...)` can error if the cutoff frequency does not adhere to the
+//! [Nyquist Frequency](https://en.wikipedia.org/wiki/Nyquist_frequency), or if the Q value is
+//! negative.
 
 use core::f32::consts::FRAC_1_SQRT_2;
 use core::f32::consts::FRAC_PI_2;

@@ -3,7 +3,7 @@
 //! A helper module for creating type-safe frequencies, while also allowing to create frequencies
 //! from float and integer literals.
 //!
-//! # Usage example
+//! # Examples
 //!
 //! ```
 //! fn main() {
@@ -19,6 +19,10 @@
 //!     let ten_hz = 0.1.dt();
 //! }
 //! ```
+//!
+//! # Errors
+//!
+//! `Hertz::new(...)` can error if the frequency is negative.
 
 /// Base type for frequency, everything is based on Hertz
 #[derive(PartialOrd, PartialEq, Debug, Copy, Clone)]
@@ -41,43 +45,47 @@ pub trait ToHertz {
 
 impl ToHertz for f32 {
     fn hz(self) -> Hertz {
-        Hertz(self)
+        Hertz::new(self).unwrap()
     }
 
     fn khz(self) -> Hertz {
-        Hertz(self * 1_000.0)
+        Hertz::new(self * 1_000.0).unwrap()
     }
 
     fn mhz(self) -> Hertz {
-        Hertz(self * 1_000_000.0)
+        Hertz::new(self * 1_000_000.0).unwrap()
     }
 
     fn dt(self) -> Hertz {
-        Hertz(1.0 / self)
+        Hertz::new(1.0 / self).unwrap()
     }
 }
 
 impl ToHertz for u32 {
     fn hz(self) -> Hertz {
-        Hertz(self as f32)
+        Hertz::new(self as f32).unwrap()
     }
 
     fn khz(self) -> Hertz {
-        Hertz((self * 1_000) as f32)
+        Hertz::new((self * 1_000) as f32).unwrap()
     }
 
     fn mhz(self) -> Hertz {
-        Hertz((self * 1_000_000) as f32)
+        Hertz::new((self * 1_000_000) as f32).unwrap()
     }
 
     fn dt(self) -> Hertz {
-        Hertz(1 as f32 / self as f32)
+        Hertz::new(1 as f32 / self as f32).unwrap()
     }
 }
 
 impl Hertz {
-    pub fn new(hz: f32) -> Hertz {
-        Hertz(hz)
+    pub fn new(hz: f32) -> Result<Hertz, &'static str> {
+        if hz < 0.0 {
+            return Err("Negative frequency");
+        }
+
+        Ok(Hertz(hz))
     }
 
     pub fn hz(self) -> f32 {
