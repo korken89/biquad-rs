@@ -1,0 +1,25 @@
+language: rust
+
+matrix:
+  include:
+    - rust: stable
+    - rust: beta
+    - rust: nightly
+
+before_install: set -e
+
+script:
+  - cargo check
+  - cargo test
+
+after_script: set +e
+
+cache: cargo
+
+before_cache:
+  # Travis can't cache files that are not readable by "others"
+  - chmod -R a+r $HOME/.cargo
+
+notifications:
+  email:
+    on_success: never
