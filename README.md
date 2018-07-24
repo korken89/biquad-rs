@@ -1,5 +1,7 @@
 # `biquad`
 
+[![Build Status](https://www.travis-ci.org/korken89/biquad-rs.svg?branch=master)](https://www.travis-ci.org/korken89/biquad-rs)
+
 > A library for digital second order IIR filtrers, also known as biquads.
 
 # [Documentation](https://docs.rs/biquad)
