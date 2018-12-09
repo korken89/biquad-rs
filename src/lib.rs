@@ -19,7 +19,7 @@
 //!     let fs = 1.khz();
 //!
 //!     // Create coefficients for the biquads
-//!     let coeffs = Coefficients::new(Type::LowPass, fs, f0, Q_BUTTERWORTH).unwrap();
+//!     let coeffs = Coefficients::from_params(Type::LowPass, fs, f0, Q_BUTTERWORTH).unwrap();
 //!
 //!     // Create two different biquads
 //!     let mut biquad1 = DirectForm1::new(coeffs);
@@ -39,15 +39,13 @@
 //!
 //! # Errors
 //!
-//! `Coefficients::new(...)` can error if the cutoff frequency does not adhere to the
+//! `Coefficients::from_params(...)` can error if the cutoff frequency does not adhere to the
 //! [Nyquist Frequency](https://en.wikipedia.org/wiki/Nyquist_frequency), or if the Q value is
 //! negative.
 //!
-//! `Hertz::new(...)` can error if the frequency is negative.
-//!
 //! # Panics
 //!
-//! There are no panics in the library.
+//! `Hertz::new(...)` will panic if the frequency is negative.
 //!
 
 #![no_std]
@@ -55,8 +53,8 @@
 pub mod coefficients;
 pub mod frequency;
 
-pub use coefficients::*;
-pub use frequency::*;
+pub use crate::coefficients::*;
+pub use crate::frequency::*;
 
 /// The required functions of a biquad implementation
 pub trait Biquad {
@@ -67,8 +65,15 @@ pub trait Biquad {
     fn update_coefficients(&mut self, new_coefficients: Coefficients);
 }
 
+/// Possible errors
+#[derive(Copy, Clone, Debug, PartialEq)]
+pub enum Errors {
+    OutsideNyquist,
+    NegativeQ,
+}
+
 /// Internal states and coefficients of the Direct Form 1 form
-#[derive(Clone, Debug)]
+#[derive(Copy, Clone, Debug)]
 pub struct DirectForm1 {
     y1: f32,
     y2: f32,
@@ -78,7 +83,7 @@ pub struct DirectForm1 {
 }
 
 /// Internal states and coefficients of the Direct Form 2 Transposed form
-#[derive(Clone, Debug)]
+#[derive(Copy, Clone, Debug)]
 pub struct DirectForm2Transposed {
     pub s1: f32,
     pub s2: f32,
@@ -148,7 +153,7 @@ extern crate std;
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use crate::*;
 
     #[test]
     fn test_frequency() {
@@ -157,10 +162,10 @@ mod tests {
         let f3 = 10.mhz();
         let f4 = 10.dt();
 
-        assert_eq!(f1, Hertz::new(10.).unwrap());
-        assert_eq!(f2, Hertz::new(10000.).unwrap());
-        assert_eq!(f3, Hertz::new(10000000.).unwrap());
-        assert_eq!(f4, Hertz::new(0.1).unwrap());
+        assert_eq!(f1, Hertz::new(10.));
+        assert_eq!(f2, Hertz::new(10000.));
+        assert_eq!(f3, Hertz::new(10000000.));
+        assert_eq!(f4, Hertz::new(0.1));
 
         assert!(f1 < f2);
         assert!(f3 > f2);
@@ -173,57 +178,59 @@ mod tests {
         let f0 = 10.hz();
         let fs = 1.khz();
 
-        let coeffs = Coefficients::new(Type::LowPass, fs, f0, Q_BUTTERWORTH);
+        let coeffs = Coefficients::from_params(Type::LowPass, fs, f0, Q_BUTTERWORTH);
 
         match coeffs {
             Ok(_) => {}
-            Err(s) => {
-                panic!("Coefficients creation failed! Error: {}", s);
+            Err(_) => {
+                panic!("Coefficients creation failed!");
             }
         }
     }
 
     #[test]
-    #[should_panic]
     fn test_coefficients_fail_flipped_frequencies() {
         let f0 = 10.hz();
         let fs = 1.khz();
 
-        let coeffs = Coefficients::new(Type::LowPass, f0, fs, Q_BUTTERWORTH);
+        let coeffs = Coefficients::from_params(Type::LowPass, f0, fs, Q_BUTTERWORTH);
 
         match coeffs {
-            Ok(_) => {}
-            Err(s) => {
-                panic!("Coefficients creation failed! Error: {}", s);
+            Ok(_) => {
+                panic!("Should not come here");
+            }
+            Err(e) => {
+                assert_eq!(e, Errors::OutsideNyquist);
             }
         }
     }
 
     #[test]
-    #[should_panic]
     fn test_coefficients_fail_negative_q() {
         let f0 = 10.hz();
         let fs = 1.khz();
 
-        let coeffs = Coefficients::new(Type::LowPass, fs, f0, -1.0);
+        let coeffs = Coefficients::from_params(Type::LowPass, fs, f0, -1.0);
 
         match coeffs {
-            Ok(_) => {}
-            Err(s) => {
-                panic!("Coefficients creation failed! Error: {}", s);
+            Ok(_) => {
+                panic!("Should not come here");
+            }
+            Err(e) => {
+                assert_eq!(e, Errors::NegativeQ);
             }
         }
     }
 
     #[test]
     fn test_biquad_zeros() {
-        use tests::std::vec::Vec;
+        use std::vec::Vec;
         //use std::vec::Vec::*;
 
         let f0 = 10.hz();
         let fs = 1.khz();
 
-        let coeffs = Coefficients::new(Type::LowPass, fs, f0, Q_BUTTERWORTH).unwrap();
+        let coeffs = Coefficients::from_params(Type::LowPass, fs, f0, Q_BUTTERWORTH).unwrap();
 
         let mut biquad1 = DirectForm1::new(coeffs);
         let mut biquad2 = DirectForm2Transposed::new(coeffs);

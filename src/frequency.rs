@@ -20,9 +20,9 @@
 //! }
 //! ```
 //!
-//! # Errors
+//! # Panics
 //!
-//! `Hertz::new(...)` can error if the frequency is negative.
+//! `Hertz::new(...)` will panic if the frequency is negative.
 
 /// Base type for frequency, everything is based on Hertz
 #[derive(PartialOrd, PartialEq, Debug, Copy, Clone)]
@@ -45,47 +45,45 @@ pub trait ToHertz {
 
 impl ToHertz for f32 {
     fn hz(self) -> Hertz {
-        Hertz::new(self).unwrap()
+        Hertz::new(self)
     }
 
     fn khz(self) -> Hertz {
-        Hertz::new(self * 1_000.0).unwrap()
+        Hertz::new(self * 1_000.0)
     }
 
     fn mhz(self) -> Hertz {
-        Hertz::new(self * 1_000_000.0).unwrap()
+        Hertz::new(self * 1_000_000.0)
     }
 
     fn dt(self) -> Hertz {
-        Hertz::new(1.0 / self).unwrap()
+        Hertz::new(1.0 / self)
     }
 }
 
 impl ToHertz for u32 {
     fn hz(self) -> Hertz {
-        Hertz::new(self as f32).unwrap()
+        Hertz::new(self as f32)
     }
 
     fn khz(self) -> Hertz {
-        Hertz::new((self * 1_000) as f32).unwrap()
+        Hertz::new((self * 1_000) as f32)
     }
 
     fn mhz(self) -> Hertz {
-        Hertz::new((self * 1_000_000) as f32).unwrap()
+        Hertz::new((self * 1_000_000) as f32)
     }
 
     fn dt(self) -> Hertz {
-        Hertz::new(1 as f32 / self as f32).unwrap()
+        Hertz::new(1 as f32 / self as f32)
     }
 }
 
 impl Hertz {
-    pub fn new(hz: f32) -> Result<Hertz, &'static str> {
-        if hz < 0.0 {
-            return Err("Negative frequency");
-        }
+    pub fn new(hz: f32) -> Self {
+        assert!(hz > 0.0);
 
-        Ok(Hertz(hz))
+        Hertz(hz)
     }
 
     pub fn hz(self) -> f32 {

@@ -27,20 +27,18 @@
 //!     let fs = 1.khz();
 //!
 //!     // Create coefficients
-//!     let coeffs = Coefficients::new(Type::LowPass, fs, f0, Q_BUTTERWORTH);
+//!     let coeffs = Coefficients::from_params(Type::LowPass, fs, f0, Q_BUTTERWORTH);
 //! }
 //! ```
 //!
 //! # Errors
 //!
-//! `Coefficients::new(...)` can error if the cutoff frequency does not adhere to the
+//! `Coefficients::from_params(...)` can error if the cutoff frequency does not adhere to the
 //! [Nyquist Frequency](https://en.wikipedia.org/wiki/Nyquist_frequency), or if the Q value is
 //! negative.
 
-use core::f32::consts::FRAC_1_SQRT_2;
-use core::f32::consts::FRAC_PI_2;
-use core::f32::consts::PI;
-use frequency::Hertz;
+use crate::{frequency::Hertz, Errors};
+use core::f32::consts::{FRAC_1_SQRT_2, FRAC_PI_2, PI};
 
 /// Common Q value of the Butterworth low-pass filter
 pub const Q_BUTTERWORTH: f32 = FRAC_1_SQRT_2;
@@ -74,15 +72,17 @@ pub struct Coefficients {
 /// sin/cos implementations.
 fn sin(x: f32) -> f32 {
     let coeffs = [
-        -0.10132118f32,         // x
-        0.0066208798f32,        // x^3
-        -0.00017350505f32,      // x^5
-        0.0000025222919f32,     // x^7
-        -0.000000023317787f32,  // x^9
-        0.00000000013291342f32, // x^11
+        -0.101_321_18f32,            // x
+        0.006_620_879_8f32,          // x^3
+        -0.000_173_505_05f32,        // x^5
+        0.000_002_522_291_9f32,      // x^7
+        -0.000_000_023_317_787f32,   // x^9
+        0.000_000_000_132_913_42f32, // x^11
     ];
-    let pi_major = 3.1415927f32;
-    let pi_minor = -0.00000008742278f32;
+
+    #[allow(clippy::approx_constant)]
+    let pi_major = 3.141_592_7f32;
+    let pi_minor = -0.000_000_087_422_78f32;
 
     // Horner's rule
     let x2 = x * x;
@@ -106,19 +106,19 @@ fn cos(x: f32) -> f32 {
 impl Coefficients {
     /// Creates coefficients based on the biquad filter type, sampling and cutoff frequency, and Q
     /// value. Note that the cutoff frequency must be smaller than half the sampling frequency and
-    /// that Q may not be negative, this will result in an `Err(&str)`.
-    pub fn new(
+    /// that Q may not be negative, this will result in an `Err()`.
+    pub fn from_params(
         filter: Type,
         fs: Hertz,
         f0: Hertz,
         q_value: f32,
-    ) -> Result<Coefficients, &'static str> {
+    ) -> Result<Coefficients, Errors> {
         if f0.hz() > fs.hz() / 2.0 {
-            return Err("Center frequency outside half of the sampling frequency");
+            return Err(Errors::OutsideNyquist);
         }
 
         if q_value < 0.0 {
-            return Err("Negative Q value");
+            return Err(Errors::NegativeQ);
         }
 
         let omega = 2.0 * PI * f0.hz() / fs.hz();
