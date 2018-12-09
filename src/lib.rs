@@ -70,6 +70,7 @@ pub trait Biquad {
 pub enum Errors {
     OutsideNyquist,
     NegativeQ,
+    NegativeFrequency,
 }
 
 /// Internal states and coefficients of the Direct Form 1 form
@@ -162,15 +163,26 @@ mod tests {
         let f3 = 10.mhz();
         let f4 = 10.dt();
 
-        assert_eq!(f1, Hertz::new(10.));
-        assert_eq!(f2, Hertz::new(10000.));
-        assert_eq!(f3, Hertz::new(10000000.));
-        assert_eq!(f4, Hertz::new(0.1));
+        assert_eq!(f1, Hertz::from_hz(10.).unwrap());
+        assert_eq!(f2, Hertz::from_hz(10000.).unwrap());
+        assert_eq!(f3, Hertz::from_hz(10000000.).unwrap());
+        assert_eq!(f4, Hertz::from_hz(0.1).unwrap());
 
         assert!(f1 < f2);
         assert!(f3 > f2);
         assert!(f1 == f1);
         assert!(f1 != f2);
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_frequency_panic() {
+        let _f1 = (-10.0).hz();
+    }
+
+    #[test]
+    fn test_hertz_from() {
+        assert_eq!(Hertz::from_dt(1.0).unwrap(), Hertz::from_hz(1.0).unwrap());
     }
 
     #[test]

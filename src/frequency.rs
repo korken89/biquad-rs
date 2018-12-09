@@ -20,9 +20,16 @@
 //! }
 //! ```
 //!
+//! # Errors
+//!
+//! `Hertz::from_hz(...)` will error if the frequency is negative.
+//!
 //! # Panics
 //!
-//! `Hertz::new(...)` will panic if the frequency is negative.
+//! `x.hz()`, `x.khz()`, `x.mhz()`, `x.dt()` will panic for `f32` if they are negative.
+//!
+
+use crate::Errors;
 
 /// Base type for frequency, everything is based on Hertz
 #[derive(PartialOrd, PartialEq, Debug, Copy, Clone)]
@@ -45,45 +52,55 @@ pub trait ToHertz {
 
 impl ToHertz for f32 {
     fn hz(self) -> Hertz {
-        Hertz::new(self)
+        Hertz::from_hz(self).unwrap()
     }
 
     fn khz(self) -> Hertz {
-        Hertz::new(self * 1_000.0)
+        Hertz::from_hz(self * 1_000.0).unwrap()
     }
 
     fn mhz(self) -> Hertz {
-        Hertz::new(self * 1_000_000.0)
+        Hertz::from_hz(self * 1_000_000.0).unwrap()
     }
 
     fn dt(self) -> Hertz {
-        Hertz::new(1.0 / self)
+        Hertz::from_hz(1.0 / self).unwrap()
     }
 }
 
 impl ToHertz for u32 {
     fn hz(self) -> Hertz {
-        Hertz::new(self as f32)
+        Hertz::from_hz(self as f32).unwrap()
     }
 
     fn khz(self) -> Hertz {
-        Hertz::new((self * 1_000) as f32)
+        Hertz::from_hz((self * 1_000) as f32).unwrap()
     }
 
     fn mhz(self) -> Hertz {
-        Hertz::new((self * 1_000_000) as f32)
+        Hertz::from_hz((self * 1_000_000) as f32).unwrap()
     }
 
     fn dt(self) -> Hertz {
-        Hertz::new(1 as f32 / self as f32)
+        Hertz::from_hz(1 as f32 / self as f32).unwrap()
     }
 }
 
 impl Hertz {
-    pub fn new(hz: f32) -> Self {
-        assert!(hz > 0.0);
+    pub fn from_hz(hz: f32) -> Result<Self, Errors> {
+        if hz > 0.0 {
+            Ok(Hertz(hz))
+        } else {
+            Err(Errors::NegativeFrequency)
+        }
+    }
 
-        Hertz(hz)
+    pub fn from_dt(dt: f32) -> Result<Self, Errors> {
+        if dt > 0.0 {
+            Ok(Hertz(1.0 / dt))
+        } else {
+            Err(Errors::NegativeFrequency)
+        }
     }
 
     pub fn hz(self) -> f32 {
