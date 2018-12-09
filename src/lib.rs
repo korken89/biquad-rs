@@ -43,9 +43,11 @@
 //! [Nyquist Frequency](https://en.wikipedia.org/wiki/Nyquist_frequency), or if the Q value is
 //! negative.
 //!
+//! `Hertz::from_hz(...)` and `Hertz::from_dt(...)` will error if the frequency is negative.
+//!
 //! # Panics
 //!
-//! `Hertz::new(...)` will panic if the frequency is negative.
+//! `x.hz()`, `x.khz()`, `x.mhz()`, `x.dt()` will panic for `f32` if they are negative.
 //!
 
 #![no_std]
