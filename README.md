@@ -11,6 +11,8 @@ online, as it has the property to introduce minimal artifacts under retuning,
 while the DF2T is best used for static filters as it has the least
 computational complexity and best numerical stability.
 
+This crate implements the biquads for `f32` and `f64`.
+
 ## Example
 
 ```rust
@@ -22,11 +24,11 @@ fn main() {
     let fs = 1.khz();
 
     // Create coefficients for the biquads
-    let coeffs = Coefficients::from_params(Type::LowPass, fs, f0, Q_BUTTERWORTH).unwrap();
+    let coeffs = Coefficients::<f32>::from_params(Type::LowPass, fs, f0, Q_BUTTERWORTH_F32).unwrap();
 
     // Create two different biquads
-    let mut biquad1 = DirectForm1::new(coeffs);
-    let mut biquad2 = DirectForm2Transposed::new(coeffs);
+    let mut biquad1 = DirectForm1::<f32>::new(coeffs);
+    let mut biquad2 = DirectForm2Transposed::<f32>::new(coeffs);
 
     let input_vec = vec![0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0];
     let mut output_vec1 = Vec::new();
