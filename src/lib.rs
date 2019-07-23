@@ -19,11 +19,11 @@
 //!     let fs = 1.khz();
 //!
 //!     // Create coefficients for the biquads
-//!     let coeffs = Coefficients::from_params(Type::LowPass, fs, f0, Q_BUTTERWORTH).unwrap();
+//!     let coeffs = Coefficients::<f32>::from_params(Type::LowPass, fs, f0, Q_BUTTERWORTH_F32).unwrap();
 //!
 //!     // Create two different biquads
-//!     let mut biquad1 = DirectForm1::new(coeffs);
-//!     let mut biquad2 = DirectForm2Transposed::new(coeffs);
+//!     let mut biquad1 = DirectForm1::<f32>::new(coeffs);
+//!     let mut biquad2 = DirectForm2Transposed::<f32>::new(coeffs);
 //!
 //!     let input_vec = vec![0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0];
 //!     let mut output_vec1 = Vec::new();
@@ -47,7 +47,7 @@
 //!
 //! # Panics
 //!
-//! `x.hz()`, `x.khz()`, `x.mhz()`, `x.dt()` will panic for `f32` if they are negative.
+//! `x.hz()`, `x.khz()`, `x.mhz()`, `x.dt()` will panic for `f32`/`f64` if they are negative.
 //!
 
 #![no_std]
@@ -59,12 +59,12 @@ pub use crate::coefficients::*;
 pub use crate::frequency::*;
 
 /// The required functions of a biquad implementation
-pub trait Biquad {
+pub trait Biquad<T> {
     /// A single iteration of a biquad, applying the filtering on the input
-    fn run(&mut self, input: f32) -> f32;
+    fn run(&mut self, input: T) -> T;
 
     /// Updating of coefficients
-    fn update_coefficients(&mut self, new_coefficients: Coefficients);
+    fn update_coefficients(&mut self, new_coefficients: Coefficients<T>);
 }
 
 /// Possible errors
@@ -77,36 +77,36 @@ pub enum Errors {
 
 /// Internal states and coefficients of the Direct Form 1 form
 #[derive(Copy, Clone, Debug)]
-pub struct DirectForm1 {
-    y1: f32,
-    y2: f32,
-    x1: f32,
-    x2: f32,
-    coeffs: Coefficients,
+pub struct DirectForm1<T> {
+    y1: T,
+    y2: T,
+    x1: T,
+    x2: T,
+    coeffs: Coefficients<T>,
 }
 
 /// Internal states and coefficients of the Direct Form 2 Transposed form
 #[derive(Copy, Clone, Debug)]
-pub struct DirectForm2Transposed {
-    pub s1: f32,
-    pub s2: f32,
-    coeffs: Coefficients,
+pub struct DirectForm2Transposed<T> {
+    pub s1: T,
+    pub s2: T,
+    coeffs: Coefficients<T>,
 }
 
-impl DirectForm1 {
+impl DirectForm1<f32> {
     /// Creates a Direct Form 1 biquad from a set of filter coefficients
-    pub fn new(coefficients: Coefficients) -> DirectForm1 {
+    pub fn new(coefficients: Coefficients<f32>) -> Self {
         DirectForm1 {
-            y1: 0.0,
-            y2: 0.0,
-            x1: 0.0,
-            x2: 0.0,
+            y1: 0.0_f32,
+            y2: 0.0_f32,
+            x1: 0.0_f32,
+            x2: 0.0_f32,
             coeffs: coefficients,
         }
     }
 }
 
-impl Biquad for DirectForm1 {
+impl Biquad<f32> for DirectForm1<f32> {
     fn run(&mut self, input: f32) -> f32 {
         let out = self.coeffs.b0 * input + self.coeffs.b1 * self.x1 + self.coeffs.b2 * self.x2
             - self.coeffs.a1 * self.y1
@@ -120,23 +120,55 @@ impl Biquad for DirectForm1 {
         out
     }
 
-    fn update_coefficients(&mut self, new_coefficients: Coefficients) {
+    fn update_coefficients(&mut self, new_coefficients: Coefficients<f32>) {
         self.coeffs = new_coefficients;
     }
 }
 
-impl DirectForm2Transposed {
-    /// Creates a Direct Form 2 Transposed biquad from a set of filter coefficients
-    pub fn new(coefficients: Coefficients) -> DirectForm2Transposed {
-        DirectForm2Transposed {
-            s1: 0.0,
-            s2: 0.0,
+impl DirectForm1<f64> {
+    /// Creates a Direct Form 1 biquad from a set of filter coefficients
+    pub fn new(coefficients: Coefficients<f64>) -> Self {
+        DirectForm1 {
+            y1: 0.0_f64,
+            y2: 0.0_f64,
+            x1: 0.0_f64,
+            x2: 0.0_f64,
             coeffs: coefficients,
         }
     }
 }
 
-impl Biquad for DirectForm2Transposed {
+impl Biquad<f64> for DirectForm1<f64> {
+    fn run(&mut self, input: f64) -> f64 {
+        let out = self.coeffs.b0 * input + self.coeffs.b1 * self.x1 + self.coeffs.b2 * self.x2
+            - self.coeffs.a1 * self.y1
+            - self.coeffs.a2 * self.y2;
+
+        self.x2 = self.x1;
+        self.x1 = input;
+        self.y2 = self.y1;
+        self.y1 = out;
+
+        out
+    }
+
+    fn update_coefficients(&mut self, new_coefficients: Coefficients<f64>) {
+        self.coeffs = new_coefficients;
+    }
+}
+
+impl DirectForm2Transposed<f32> {
+    /// Creates a Direct Form 2 Transposed biquad from a set of filter coefficients
+    pub fn new(coefficients: Coefficients<f32>) -> Self {
+        DirectForm2Transposed {
+            s1: 0.0_f32,
+            s2: 0.0_f32,
+            coeffs: coefficients,
+        }
+    }
+}
+
+impl Biquad<f32> for DirectForm2Transposed<f32> {
     fn run(&mut self, input: f32) -> f32 {
         let out = self.s1 + self.coeffs.b0 * input;
         self.s1 = self.s2 + self.coeffs.b1 * input - self.coeffs.a1 * out;
@@ -145,7 +177,32 @@ impl Biquad for DirectForm2Transposed {
         out
     }
 
-    fn update_coefficients(&mut self, new_coefficients: Coefficients) {
+    fn update_coefficients(&mut self, new_coefficients: Coefficients<f32>) {
+        self.coeffs = new_coefficients;
+    }
+}
+
+impl DirectForm2Transposed<f64> {
+    /// Creates a Direct Form 2 Transposed biquad from a set of filter coefficients
+    pub fn new(coefficients: Coefficients<f64>) -> Self {
+        DirectForm2Transposed {
+            s1: 0.0_f64,
+            s2: 0.0_f64,
+            coeffs: coefficients,
+        }
+    }
+}
+
+impl Biquad<f64> for DirectForm2Transposed<f64> {
+    fn run(&mut self, input: f64) -> f64 {
+        let out = self.s1 + self.coeffs.b0 * input;
+        self.s1 = self.s2 + self.coeffs.b1 * input - self.coeffs.a1 * out;
+        self.s2 = self.coeffs.b2 * input - self.coeffs.a2 * out;
+
+        out
+    }
+
+    fn update_coefficients(&mut self, new_coefficients: Coefficients<f64>) {
         self.coeffs = new_coefficients;
     }
 }
@@ -159,16 +216,34 @@ mod tests {
     use crate::*;
 
     #[test]
-    fn test_frequency() {
+    fn test_frequency_f32() {
         let f1 = 10.hz();
         let f2 = 10.khz();
         let f3 = 10.mhz();
         let f4 = 10.dt();
 
-        assert_eq!(f1, Hertz::from_hz(10.).unwrap());
-        assert_eq!(f2, Hertz::from_hz(10000.).unwrap());
-        assert_eq!(f3, Hertz::from_hz(10000000.).unwrap());
-        assert_eq!(f4, Hertz::from_hz(0.1).unwrap());
+        assert_eq!(f1, Hertz::<f32>::from_hz(10.).unwrap());
+        assert_eq!(f2, Hertz::<f32>::from_hz(10000.).unwrap());
+        assert_eq!(f3, Hertz::<f32>::from_hz(10000000.).unwrap());
+        assert_eq!(f4, Hertz::<f32>::from_hz(0.1).unwrap());
+
+        assert!(f1 < f2);
+        assert!(f3 > f2);
+        assert!(f1 == f1);
+        assert!(f1 != f2);
+    }
+
+    #[test]
+    fn test_frequency_f64() {
+        let f1 = 10.hz();
+        let f2 = 10.khz();
+        let f3 = 10.mhz();
+        let f4 = 10.dt();
+
+        assert_eq!(f1, Hertz::<f64>::from_hz(10.).unwrap());
+        assert_eq!(f2, Hertz::<f64>::from_hz(10000.).unwrap());
+        assert_eq!(f3, Hertz::<f64>::from_hz(10000000.).unwrap());
+        assert_eq!(f4, Hertz::<f64>::from_hz(0.1).unwrap());
 
         assert!(f1 < f2);
         assert!(f3 > f2);
@@ -183,16 +258,27 @@ mod tests {
     }
 
     #[test]
-    fn test_hertz_from() {
-        assert_eq!(Hertz::from_dt(1.0).unwrap(), Hertz::from_hz(1.0).unwrap());
+    fn test_hertz_from_f32() {
+        assert_eq!(
+            Hertz::<f32>::from_dt(1.0).unwrap(),
+            Hertz::<f32>::from_hz(1.0).unwrap()
+        );
     }
 
     #[test]
-    fn test_coefficients_normal() {
+    fn test_hertz_from_f64() {
+        assert_eq!(
+            Hertz::<f64>::from_dt(1.0).unwrap(),
+            Hertz::<f64>::from_hz(1.0).unwrap()
+        );
+    }
+
+    #[test]
+    fn test_coefficients_normal_f32() {
         let f0 = 10.hz();
         let fs = 1.khz();
 
-        let coeffs = Coefficients::from_params(Type::LowPass, fs, f0, Q_BUTTERWORTH);
+        let coeffs = Coefficients::<f32>::from_params(Type::LowPass, fs, f0, Q_BUTTERWORTH_F32);
 
         match coeffs {
             Ok(_) => {}
@@ -203,11 +289,26 @@ mod tests {
     }
 
     #[test]
-    fn test_coefficients_fail_flipped_frequencies() {
+    fn test_coefficients_normal_f64() {
         let f0 = 10.hz();
         let fs = 1.khz();
 
-        let coeffs = Coefficients::from_params(Type::LowPass, f0, fs, Q_BUTTERWORTH);
+        let coeffs = Coefficients::<f64>::from_params(Type::LowPass, fs, f0, Q_BUTTERWORTH_F64);
+
+        match coeffs {
+            Ok(_) => {}
+            Err(_) => {
+                panic!("Coefficients creation failed!");
+            }
+        }
+    }
+
+    #[test]
+    fn test_coefficients_fail_flipped_frequencies_f32() {
+        let f0 = 10.hz();
+        let fs = 1.khz();
+
+        let coeffs = Coefficients::<f32>::from_params(Type::LowPass, f0, fs, Q_BUTTERWORTH_F32);
 
         match coeffs {
             Ok(_) => {
@@ -220,11 +321,28 @@ mod tests {
     }
 
     #[test]
-    fn test_coefficients_fail_negative_q() {
+    fn test_coefficients_fail_flipped_frequencies_f64() {
         let f0 = 10.hz();
         let fs = 1.khz();
 
-        let coeffs = Coefficients::from_params(Type::LowPass, fs, f0, -1.0);
+        let coeffs = Coefficients::<f64>::from_params(Type::LowPass, f0, fs, Q_BUTTERWORTH_F64);
+
+        match coeffs {
+            Ok(_) => {
+                panic!("Should not come here");
+            }
+            Err(e) => {
+                assert_eq!(e, Errors::OutsideNyquist);
+            }
+        }
+    }
+
+    #[test]
+    fn test_coefficients_fail_negative_q_f32() {
+        let f0 = 10.hz();
+        let fs = 1.khz();
+
+        let coeffs = Coefficients::<f32>::from_params(Type::LowPass, fs, f0, -1.0);
 
         match coeffs {
             Ok(_) => {
@@ -237,17 +355,59 @@ mod tests {
     }
 
     #[test]
-    fn test_biquad_zeros() {
+    fn test_coefficients_fail_negative_q_f64() {
+        let f0 = 10.hz();
+        let fs = 1.khz();
+
+        let coeffs = Coefficients::<f64>::from_params(Type::LowPass, fs, f0, -1.0);
+
+        match coeffs {
+            Ok(_) => {
+                panic!("Should not come here");
+            }
+            Err(e) => {
+                assert_eq!(e, Errors::NegativeQ);
+            }
+        }
+    }
+
+    #[test]
+    fn test_biquad_zeros_f32() {
         use std::vec::Vec;
         //use std::vec::Vec::*;
 
         let f0 = 10.hz();
         let fs = 1.khz();
 
-        let coeffs = Coefficients::from_params(Type::LowPass, fs, f0, Q_BUTTERWORTH).unwrap();
+        let coeffs =
+            Coefficients::<f32>::from_params(Type::LowPass, fs, f0, Q_BUTTERWORTH_F32).unwrap();
 
-        let mut biquad1 = DirectForm1::new(coeffs);
-        let mut biquad2 = DirectForm2Transposed::new(coeffs);
+        let mut biquad1 = DirectForm1::<f32>::new(coeffs);
+        let mut biquad2 = DirectForm2Transposed::<f32>::new(coeffs);
+
+        let input_vec = vec![0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0];
+        let mut output_vec1 = Vec::new();
+        let mut output_vec2 = Vec::new();
+
+        for elem in input_vec {
+            output_vec1.push(biquad1.run(elem));
+            output_vec2.push(biquad2.run(elem));
+        }
+    }
+
+    #[test]
+    fn test_biquad_zeros_f64() {
+        use std::vec::Vec;
+        //use std::vec::Vec::*;
+
+        let f0 = 10.hz();
+        let fs = 1.khz();
+
+        let coeffs =
+            Coefficients::<f64>::from_params(Type::LowPass, fs, f0, Q_BUTTERWORTH_F64).unwrap();
+
+        let mut biquad1 = DirectForm1::<f64>::new(coeffs);
+        let mut biquad2 = DirectForm2Transposed::<f64>::new(coeffs);
 
         let input_vec = vec![0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0];
         let mut output_vec1 = Vec::new();

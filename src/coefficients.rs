@@ -27,7 +27,7 @@
 //!     let fs = 1.khz();
 //!
 //!     // Create coefficients
-//!     let coeffs = Coefficients::from_params(Type::LowPass, fs, f0, Q_BUTTERWORTH);
+//!     let coeffs = Coefficients::<f32>::from_params(Type::LowPass, fs, f0, Q_BUTTERWORTH_F32);
 //! }
 //! ```
 //!
@@ -38,10 +38,14 @@
 //! negative.
 
 use crate::{frequency::Hertz, Errors};
-use core::f32::consts::{FRAC_1_SQRT_2, FRAC_PI_2, PI};
+
+// For some reason this is not detected properly
+#[allow(unused_imports)]
+use libm::{F32Ext, F64Ext};
 
 /// Common Q value of the Butterworth low-pass filter
-pub const Q_BUTTERWORTH: f32 = FRAC_1_SQRT_2;
+pub const Q_BUTTERWORTH_F32: f32 = core::f32::consts::FRAC_1_SQRT_2;
+pub const Q_BUTTERWORTH_F64: f64 = core::f64::consts::FRAC_1_SQRT_2;
 
 /// The supported types of biquad coefficients. Note that single pole low pass filters are faster to
 /// retune, as all other filter types require evaluations of sin/cos functions
@@ -55,65 +59,28 @@ pub enum Type {
 
 /// Holder of the biquad coefficients, utilizes normalized form
 #[derive(Clone, Copy, Debug)]
-pub struct Coefficients {
+pub struct Coefficients<T> {
     // Denominator coefficients
-    pub a1: f32,
-    pub a2: f32,
+    pub a1: T,
+    pub a2: T,
 
     // Nominator coefficients
-    pub b0: f32,
-    pub b1: f32,
-    pub b2: f32,
+    pub b0: T,
+    pub b1: T,
+    pub b2: T,
 }
 
-/// An [accurate and simple sin function](http://mooooo.ooo/chebyshev-sine-approximation/)
-/// over the input in [-pi, pi] which is accurate to 4.58 ULPs. The sin/cos calculations used in the
-/// implementation of coefficients are bounded to [0, pi] which allows for the use of simplified
-/// sin/cos implementations.
-fn sin(x: f32) -> f32 {
-    let coeffs = [
-        -0.101_321_18f32,            // x
-        0.006_620_879_8f32,          // x^3
-        -0.000_173_505_05f32,        // x^5
-        0.000_002_522_291_9f32,      // x^7
-        -0.000_000_023_317_787f32,   // x^9
-        0.000_000_000_132_913_42f32, // x^11
-    ];
-
-    #[allow(clippy::approx_constant)]
-    let pi_major = 3.141_592_7f32;
-    let pi_minor = -0.000_000_087_422_78f32;
-
-    // Horner's rule
-    let x2 = x * x;
-    let p11 = coeffs[5];
-    let p9 = p11 * x2 + coeffs[4];
-    let p7 = p9 * x2 + coeffs[3];
-    let p5 = p7 * x2 + coeffs[2];
-    let p3 = p5 * x2 + coeffs[1];
-    let p1 = p3 * x2 + coeffs[0];
-
-    // Remove scaling function
-    (x - pi_major - pi_minor) * (x + pi_major + pi_minor) * p1 * x
-}
-
-/// Used to convert the argument of `cos` into a `sin`, with the arguments being in [0, pi], the
-/// transformation here will still be valid for `sin`.
-fn cos(x: f32) -> f32 {
-    sin(FRAC_PI_2 - x)
-}
-
-impl Coefficients {
+impl Coefficients<f32> {
     /// Creates coefficients based on the biquad filter type, sampling and cutoff frequency, and Q
     /// value. Note that the cutoff frequency must be smaller than half the sampling frequency and
     /// that Q may not be negative, this will result in an `Err()`.
     pub fn from_params(
         filter: Type,
-        fs: Hertz,
-        f0: Hertz,
+        fs: Hertz<f32>,
+        f0: Hertz<f32>,
         q_value: f32,
-    ) -> Result<Coefficients, Errors> {
-        if f0.hz() > fs.hz() / 2.0 {
+    ) -> Result<Coefficients<f32>, Errors> {
+        if 2.0 * f0.hz() > fs.hz() {
             return Err(Errors::OutsideNyquist);
         }
 
@@ -121,7 +88,7 @@ impl Coefficients {
             return Err(Errors::NegativeQ);
         }
 
-        let omega = 2.0 * PI * f0.hz() / fs.hz();
+        let omega = 2.0 * core::f32::consts::PI * f0.hz() / fs.hz();
 
         match filter {
             Type::SinglePoleLowPass => {
@@ -139,8 +106,8 @@ impl Coefficients {
                 // The code for omega_s/c and alpha is currently duplicated due to the single pole
                 // low pass filter not needing it and when creating coefficients are commonly
                 // assumed to be of low computational complexity.
-                let omega_s = sin(omega);
-                let omega_c = cos(omega);
+                let omega_s = omega.sin();
+                let omega_c = omega.cos();
                 let alpha = omega_s / (2.0 * q_value);
 
                 let b0 = (1.0 - omega_c) * 0.5;
@@ -159,8 +126,8 @@ impl Coefficients {
                 })
             }
             Type::HighPass => {
-                let omega_s = sin(omega);
-                let omega_c = cos(omega);
+                let omega_s = omega.sin();
+                let omega_c = omega.cos();
                 let alpha = omega_s / (2.0 * q_value);
 
                 let b0 = (1.0 + omega_c) * 0.5;
@@ -179,8 +146,8 @@ impl Coefficients {
                 })
             }
             Type::Notch => {
-                let omega_s = sin(omega);
-                let omega_c = cos(omega);
+                let omega_s = omega.sin();
+                let omega_c = omega.cos();
                 let alpha = omega_s / (2.0 * q_value);
 
                 let b0 = 1.0;
@@ -196,6 +163,111 @@ impl Coefficients {
                     b0: b0 / a0,
                     b1: b1 / a0,
                     b2: b2 / a0,
+                })
+            }
+        }
+    }
+}
+
+impl Coefficients<f64> {
+    /// Creates coefficients based on the biquad filter type, sampling and cutoff frequency, and Q
+    /// value. Note that the cutoff frequency must be smaller than half the sampling frequency and
+    /// that Q may not be negative, this will result in an `Err()`.
+    pub fn from_params(
+        filter: Type,
+        fs: Hertz<f64>,
+        f0: Hertz<f64>,
+        q_value: f64,
+    ) -> Result<Coefficients<f64>, Errors> {
+        if 2.0 * f0.hz() > fs.hz() {
+            return Err(Errors::OutsideNyquist);
+        }
+
+        if q_value < 0.0 {
+            return Err(Errors::NegativeQ);
+        }
+
+        let omega = 2.0 * core::f64::consts::PI * f0.hz() / fs.hz();
+
+        match filter {
+            Type::SinglePoleLowPass => {
+                let alpha = omega / (omega + 1.0);
+
+                Ok(Coefficients {
+                    a1: alpha - 1.0,
+                    a2: 0.0,
+                    b0: alpha,
+                    b1: 0.0,
+                    b2: 0.0,
+                })
+            }
+            Type::LowPass => {
+                // The code for omega_s/c and alpha is currently duplicated due to the single pole
+                // low pass filter not needing it and when creating coefficients are commonly
+                // assumed to be of low computational complexity.
+                let omega_s = omega.sin();
+                let omega_c = omega.cos();
+                let alpha = omega_s / (2.0 * q_value);
+
+                let b0 = (1.0 - omega_c) * 0.5;
+                let b1 = 1.0 - omega_c;
+                let b2 = (1.0 - omega_c) * 0.5;
+                let a0 = 1.0 + alpha;
+                let a1 = -2.0 * omega_c;
+                let a2 = 1.0 - alpha;
+
+                let div = 1.0 / a0;
+
+                Ok(Coefficients {
+                    a1: a1 * div,
+                    a2: a2 * div,
+                    b0: b0 * div,
+                    b1: b1 * div,
+                    b2: b2 * div,
+                })
+            }
+            Type::HighPass => {
+                let omega_s = omega.sin();
+                let omega_c = omega.cos();
+                let alpha = omega_s / (2.0 * q_value);
+
+                let b0 = (1.0 + omega_c) * 0.5;
+                let b1 = -(1.0 + omega_c);
+                let b2 = (1.0 + omega_c) * 0.5;
+                let a0 = 1.0 + alpha;
+                let a1 = -2.0 * omega_c;
+                let a2 = 1.0 - alpha;
+
+                let div = 1.0 / a0;
+
+                Ok(Coefficients {
+                    a1: a1 * div,
+                    a2: a2 * div,
+                    b0: b0 * div,
+                    b1: b1 * div,
+                    b2: b2 * div,
+                })
+            }
+            Type::Notch => {
+                let omega_s = omega.sin();
+                let omega_c = omega.cos();
+                let alpha = omega_s / (2.0 * q_value);
+
+                let b0 = 1.0;
+                let b1 = -2.0 * omega_c;
+                let b2 = 1.0;
+                let a0 = 1.0 + alpha;
+                let a1 = -2.0 * omega_c;
+                let a2 = 1.0 - alpha;
+
+                let div = 1.0 / a0;
+
+                Ok(Coefficients {
+                    a1: a1 * div,
+                    a2: a2 * div,
+                    b0: b0 * div,
+                    b1: b1 * div,
+                    b2: b2 * div,
                 })
             }
         }
