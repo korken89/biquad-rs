@@ -1,6 +1,6 @@
 [package]
 name = "biquad"
-version = "0.2.0"
+version = "0.3.0"
 authors = ["Emil Fresk <emil.fresk@gmail.com>"]
 description = "A library for digital second order IIR filtrers, also known as biquads."
 categories = ["embedded", "no-std"]
