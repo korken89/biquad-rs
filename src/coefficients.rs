@@ -54,6 +54,7 @@ pub enum Type {
     SinglePoleLowPass,
     LowPass,
     HighPass,
+    BandPass,
     Notch,
 }
 
@@ -143,6 +144,28 @@ impl Coefficients<f32> {
                     b0: b0 / a0,
                     b1: b1 / a0,
                     b2: b2 / a0,
+                })
+            }
+            Type::BandPass => {
+                let omega_s = omega.sin();
+                let omega_c = omega.cos();
+                let alpha = omega_s / (2.0 * q_value);
+
+                let b0 = omega_s / 2.0;
+                let b1 = 0.;
+                let b2 = -(omega_s / 2.0);
+                let a0 = 1.0 + alpha;
+                let a1 = -2.0 * omega_c;
+                let a2 = 1.0 - alpha;
+
+                let div = 1.0 / a0;
+
+                Ok(Coefficients {
+                    a1: a1 * div,
+                    a2: a2 * div,
+                    b0: b0 * div,
+                    b1: b1 * div,
+                    b2: b2 * div,
                 })
             }
             Type::Notch => {
@@ -256,6 +279,28 @@ impl Coefficients<f64> {
                 let b0 = 1.0;
                 let b1 = -2.0 * omega_c;
                 let b2 = 1.0;
+                let a0 = 1.0 + alpha;
+                let a1 = -2.0 * omega_c;
+                let a2 = 1.0 - alpha;
+
+                let div = 1.0 / a0;
+
+                Ok(Coefficients {
+                    a1: a1 * div,
+                    a2: a2 * div,
+                    b0: b0 * div,
+                    b1: b1 * div,
+                    b2: b2 * div,
+                })
+            }
+            Type::BandPass => {
+                let omega_s = omega.sin();
+                let omega_c = omega.cos();
+                let alpha = omega_s / (2.0 * q_value);
+
+                let b0 = omega_s / 2.0;
+                let b1 = 0.;
+                let b2 = -(omega_s / 2.0);
                 let a0 = 1.0 + alpha;
                 let a1 = -2.0 * omega_c;
                 let a2 = 1.0 - alpha;
