@@ -14,6 +14,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Changes
 
+## [v0.3.1] - 2020-04-10
+
+### Added
+
+* Bandpass filter added
+
 ## [v0.3.0] - 2019-07-23
 
 ### Added
@@ -27,6 +33,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 First changelog.
 
 
-[Unreleased]: https://github.com/korken89/biquad-rs/compare/v0.3.0...master
+[Unreleased]: https://github.com/korken89/biquad-rs/compare/v0.3.1...master
+[v0.3.1]: https://github.com/korken89/biquad-rs/compare/v0.2.0...v0.3.1
 [v0.3.0]: https://github.com/korken89/biquad-rs/compare/v0.2.0...v0.3.0
 [v0.2.0]: https://github.com/korken89/biquad-rs/compare/v0.1.0...v0.2.0
