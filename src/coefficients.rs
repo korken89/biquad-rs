@@ -9,7 +9,7 @@
 //! ```
 //!
 //! The second orders filter are based on the
-//! [Audio EQ Cookbook](http://www.musicdsp.org/files/Audio-EQ-Cookbook.txt), while the first order
+//! [Audio EQ Cookbook](https://webaudio.github.io/Audio-EQ-Cookbook/audio-eq-cookbook.html), while the first order
 //! low pass filter is based on the following
 //! [Wikipedia article](https://en.wikipedia.org/wiki/Low-pass_filter#Discrete-time_realization).
 //!
