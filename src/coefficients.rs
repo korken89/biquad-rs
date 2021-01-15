@@ -60,6 +60,7 @@ pub enum Type {
     Notch,
     LowShelf(DBGain),
     HighShelf(DBGain),
+    PeakingEQ(DBGain),
 }
 
 /// Holder of the biquad coefficients, utilizes normalized form
@@ -237,6 +238,27 @@ impl Coefficients<f32> {
                     b2: b2 / a0,
                 })
             }
+            Type::PeakingEQ(db_gain) => {
+                let a = 10.0f32.powf(db_gain / 40.0);
+                let omega_s = omega.sin();
+                let omega_c = omega.cos();
+                let alpha = omega_s / (2.0 * q_value);
+
+                let b0 = 1.0 + alpha * a;
+                let b1 = -2.0 * omega_c;
+                let b2 = 1.0 - alpha * a;
+                let a0 = 1.0 + alpha / a;
+                let a1 = -2.0 * omega_c;
+                let a2 = 1.0 - alpha * a;
+
+                Ok(Coefficients {
+                    a1: a1 / a0,
+                    a2: a2 / a0,
+                    b0: b0 / a0,
+                    b1: b1 / a0,
+                    b2: b2 / a0,
+                })
+            }
         }
     }
 }
@@ -366,6 +388,7 @@ impl Coefficients<f64> {
             }
             Type::LowShelf(_) => unimplemented!("Not yet implemeneted!"),
             Type::HighShelf(_) => unimplemented!("Not yet implemeneted!"),
+            Type::PeakingEQ(_) => unimplemented!("Not yet implemeneted!"),
         }
     }
 }
