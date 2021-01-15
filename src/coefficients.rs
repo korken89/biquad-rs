@@ -59,6 +59,7 @@ pub enum Type {
     BandPass,
     Notch,
     LowShelf(DBGain),
+    HighShelf(DBGain),
 }
 
 /// Holder of the biquad coefficients, utilizes normalized form
@@ -215,6 +216,27 @@ impl Coefficients<f32> {
                     b2: b2 / a0,
                 })
             }
+            Type::HighShelf(db_gain) => {
+                let a = 10.0f32.powf(db_gain / 40.0);
+                let omega_s = omega.sin();
+                let omega_c = omega.cos();
+                let alpha = omega_s / (2.0 * q_value);
+
+                let b0 = a * ((a + 1.0) + (a - 1.0) * omega_c + 2.0 * alpha * a.sqrt());
+                let b1 = -2.0 * a * ((a - 1.0) + (a + 1.0) * omega_c);
+                let b2 = a * ((a + 1.0) + (a - 1.0) * omega_c - 2.0 * alpha * a.sqrt());
+                let a0 = (a + 1.0) - (a - 1.0) * omega_c + 2.0 * alpha * a.sqrt();
+                let a1 = 2.0 * ((a - 1.0) - (a + 1.0) * omega_c);
+                let a2 = (a + 1.0) - (a - 1.0) * omega_c - 2.0 * alpha * a.sqrt();
+
+                Ok(Coefficients {
+                    a1: a1 / a0,
+                    a2: a2 / a0,
+                    b0: b0 / a0,
+                    b1: b1 / a0,
+                    b2: b2 / a0,
+                })
+            }
         }
     }
 }
@@ -343,6 +365,7 @@ impl Coefficients<f64> {
                 })
             }
             Type::LowShelf(_) => unimplemented!("Not yet implemeneted!"),
+            Type::HighShelf(_) => unimplemented!("Not yet implemeneted!"),
         }
     }
 }
