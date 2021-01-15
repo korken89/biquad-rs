@@ -267,7 +267,7 @@ impl Coefficients<f32> {
                 let b2 = 1.0 - alpha * a;
                 let a0 = 1.0 + alpha / a;
                 let a1 = -2.0 * omega_c;
-                let a2 = 1.0 - alpha * a;
+                let a2 = 1.0 - alpha / a;
 
                 Ok(Coefficients {
                     a1: a1 / a0,
