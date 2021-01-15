@@ -47,12 +47,12 @@ use libm::{F32Ext, F64Ext};
 pub const Q_BUTTERWORTH_F32: f32 = core::f32::consts::FRAC_1_SQRT_2;
 pub const Q_BUTTERWORTH_F64: f64 = core::f64::consts::FRAC_1_SQRT_2;
 
-pub type DBGain = f32;
-
 /// The supported types of biquad coefficients. Note that single pole low pass filters are faster to
 /// retune, as all other filter types require evaluations of sin/cos functions
+/// The `LowShelf`, `HighShelf`, and `PeakingEQ` all have a gain value for its
+/// field, and represents the gain, in decibels, that the filter provides.
 #[derive(Clone, Copy, Debug)]
-pub enum Type {
+pub enum Type<DBGain> {
     SinglePoleLowPass,
     LowPass,
     HighPass,
@@ -82,7 +82,7 @@ impl Coefficients<f32> {
     /// value. Note that the cutoff frequency must be smaller than half the sampling frequency and
     /// that Q may not be negative, this will result in an `Err()`.
     pub fn from_params(
-        filter: Type,
+        filter: Type<f32>,
         fs: Hertz<f32>,
         f0: Hertz<f32>,
         q_value: f32,
@@ -286,7 +286,7 @@ impl Coefficients<f64> {
     /// value. Note that the cutoff frequency must be smaller than half the sampling frequency and
     /// that Q may not be negative, this will result in an `Err()`.
     pub fn from_params(
-        filter: Type,
+        filter: Type<f64>,
         fs: Hertz<f64>,
         f0: Hertz<f64>,
         q_value: f64,
@@ -404,10 +404,89 @@ impl Coefficients<f64> {
                     b2: b2 * div,
                 })
             }
-            Type::AllPass => unimplemented!("Not yet implemented!"),
-            Type::LowShelf(_) => unimplemented!("Not yet implemeneted!"),
-            Type::HighShelf(_) => unimplemented!("Not yet implemeneted!"),
-            Type::PeakingEQ(_) => unimplemented!("Not yet implemeneted!"),
+            Type::AllPass => {
+                let omega_s = omega.sin();
+                let omega_c = omega.cos();
+                let alpha = omega_s / (2.0 * q_value);
+
+                let b0 = 1.0 - alpha;
+                let b1 = -2.0 * omega_c;
+                let b2 = 1.0 + alpha;
+                let a0 = 1.0 + alpha;
+                let a1 = -2.0 * omega_c;
+                let a2 = 1.0 - alpha;
+
+                Ok(Coefficients {
+                    a1: a1 / a0,
+                    a2: a2 / a0,
+                    b0: b0 / a0,
+                    b1: b1 / a0,
+                    b2: b2 / a0,
+                })
+            }
+            Type::LowShelf(db_gain) => {
+                let a = 10.0f64.powf(db_gain / 40.0);
+                let omega_s = omega.sin();
+                let omega_c = omega.cos();
+                let alpha = omega_s / (2.0 * q_value);
+
+                let b0 = a * ((a + 1.0) - (a - 1.0) * omega_c + 2.0 * alpha * a.sqrt());
+                let b1 = 2.0 * a * ((a - 1.0) - (a + 1.0) * omega_c);
+                let b2 = a * ((a + 1.0) - (a - 1.0) * omega_c - 2.0 * alpha * a.sqrt());
+                let a0 = (a + 1.0) + (a - 1.0) * omega_c + 2.0 * alpha * a.sqrt();
+                let a1 = -2.0 * ((a - 1.0) + (a + 1.0) * omega_c);
+                let a2 = (a + 1.0) + (a - 1.0) * omega_c - 2.0 * alpha * a.sqrt();
+
+                Ok(Coefficients {
+                    a1: a1 / a0,
+                    a2: a2 / a0,
+                    b0: b0 / a0,
+                    b1: b1 / a0,
+                    b2: b2 / a0,
+                })
+            }
+            Type::HighShelf(db_gain) => {
+                let a = 10.0f64.powf(db_gain / 40.0);
+                let omega_s = omega.sin();
+                let omega_c = omega.cos();
+                let alpha = omega_s / (2.0 * q_value);
+
+                let b0 = a * ((a + 1.0) + (a - 1.0) * omega_c + 2.0 * alpha * a.sqrt());
+                let b1 = -2.0 * a * ((a - 1.0) + (a + 1.0) * omega_c);
+                let b2 = a * ((a + 1.0) + (a - 1.0) * omega_c - 2.0 * alpha * a.sqrt());
+                let a0 = (a + 1.0) - (a - 1.0) * omega_c + 2.0 * alpha * a.sqrt();
+                let a1 = 2.0 * ((a - 1.0) - (a + 1.0) * omega_c);
+                let a2 = (a + 1.0) - (a - 1.0) * omega_c - 2.0 * alpha * a.sqrt();
+
+                Ok(Coefficients {
+                    a1: a1 / a0,
+                    a2: a2 / a0,
+                    b0: b0 / a0,
+                    b1: b1 / a0,
+                    b2: b2 / a0,
+                })
+            }
+            Type::PeakingEQ(db_gain) => {
+                let a = 10.0f64.powf(db_gain / 40.0);
+                let omega_s = omega.sin();
+                let omega_c = omega.cos();
+                let alpha = omega_s / (2.0 * q_value);
+
+                let b0 = 1.0 + alpha * a;
+                let b1 = -2.0 * omega_c;
+                let b2 = 1.0 - alpha * a;
+                let a0 = 1.0 + alpha / a;
+                let a1 = -2.0 * omega_c;
+                let a2 = 1.0 - alpha / a;
+
+                Ok(Coefficients {
+                    a1: a1 / a0,
+                    a2: a2 / a0,
+                    b0: b0 / a0,
+                    b1: b1 / a0,
+                    b2: b2 / a0,
+                })
+            }
         }
     }
 }
