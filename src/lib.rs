@@ -65,6 +65,13 @@ pub trait Biquad<T> {
 
     /// Updating of coefficients
     fn update_coefficients(&mut self, new_coefficients: Coefficients<T>);
+
+    /// Updating coefficients and returning the old ones. This is useful to avoid deallocating on the audio thread, since 
+    /// the `Coefficients` can then be sent to another thread for deallocation.
+    fn replace_coefficients(&mut self, new_coefficients: Coefficients<T>) -> Coefficients<T>;
+
+    /// Set the internal state of the biquad to 0 without allocation.
+    fn reset_state(&mut self);
 }
 
 /// Possible errors
@@ -123,6 +130,17 @@ impl Biquad<f32> for DirectForm1<f32> {
     fn update_coefficients(&mut self, new_coefficients: Coefficients<f32>) {
         self.coeffs = new_coefficients;
     }
+
+    fn replace_coefficients(&mut self, new_coefficients: Coefficients<f32>) -> Coefficients<f32> {
+        core::mem::replace(&mut self.coeffs, new_coefficients)
+    }
+
+    fn reset_state(&mut self) {
+        self.x1 = 0.;
+        self.x2 = 0.;
+        self.y1 = 0.;
+        self.y2 = 0.;
+    }
 }
 
 impl DirectForm1<f64> {
@@ -155,6 +173,17 @@ impl Biquad<f64> for DirectForm1<f64> {
     fn update_coefficients(&mut self, new_coefficients: Coefficients<f64>) {
         self.coeffs = new_coefficients;
     }
+
+    fn replace_coefficients(&mut self, new_coefficients: Coefficients<f64>) -> Coefficients<f64> {
+        core::mem::replace(&mut self.coeffs, new_coefficients)
+    }
+
+    fn reset_state(&mut self) {
+        self.x1 = 0.;
+        self.x2 = 0.;
+        self.y1 = 0.;
+        self.y2 = 0.;
+    }
 }
 
 impl DirectForm2Transposed<f32> {
@@ -179,6 +208,15 @@ impl Biquad<f32> for DirectForm2Transposed<f32> {
 
     fn update_coefficients(&mut self, new_coefficients: Coefficients<f32>) {
         self.coeffs = new_coefficients;
+    }
+
+    fn replace_coefficients(&mut self, new_coefficients: Coefficients<f32>) -> Coefficients<f32> {
+        core::mem::replace(&mut self.coeffs, new_coefficients)
+    }
+
+    fn reset_state(&mut self) {
+        self.s1 = 0.;
+        self.s2 = 0.;
     }
 }
 
@@ -205,7 +243,17 @@ impl Biquad<f64> for DirectForm2Transposed<f64> {
     fn update_coefficients(&mut self, new_coefficients: Coefficients<f64>) {
         self.coeffs = new_coefficients;
     }
+
+    fn replace_coefficients(&mut self, new_coefficients: Coefficients<f64>) -> Coefficients<f64> {
+        core::mem::replace(&mut self.coeffs, new_coefficients)
+    }
+
+    fn reset_state(&mut self) {
+        self.s1 = 0.;
+        self.s2 = 0.;
+    }
 }
+
 
 #[cfg(test)]
 #[macro_use]
