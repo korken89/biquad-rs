@@ -11,6 +11,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Added
 
+* Reset state method added
+* Method to replace the coefficients and return the old coefficients instead of dropping them added
+
 ### Changes
 
 ## [v0.4.0] - 2020-04-10
