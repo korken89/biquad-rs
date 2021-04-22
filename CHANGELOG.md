@@ -11,12 +11,18 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Added
 
+## [v0.4.1] - 2021-04-22
+
+### Fixed
+
+### Added
+
 * Reset state method added
 * Method to replace the coefficients and return the old coefficients instead of dropping them added
 
 ### Changes
 
-## [v0.4.0] - 2020-04-10
+## [v0.4.0] - 2021-01-16
 
 ### Fixed
 
@@ -45,7 +51,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 First changelog.
 
 
-[Unreleased]: https://github.com/korken89/biquad-rs/compare/v0.4.0...master
+[Unreleased]: https://github.com/korken89/biquad-rs/compare/v0.4.1...master
+[v0.4.1]: https://github.com/korken89/biquad-rs/compare/v0.4.0...v0.4.1
 [v0.4.0]: https://github.com/korken89/biquad-rs/compare/v0.3.1...v0.4.0
 [v0.3.1]: https://github.com/korken89/biquad-rs/compare/v0.3.0...v0.3.1
 [v0.3.0]: https://github.com/korken89/biquad-rs/compare/v0.2.0...v0.3.0
