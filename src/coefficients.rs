@@ -53,6 +53,7 @@ pub const Q_BUTTERWORTH_F64: f64 = core::f64::consts::FRAC_1_SQRT_2;
 /// field, and represents the gain, in decibels, that the filter provides.
 #[derive(Clone, Copy, Debug)]
 pub enum Type<DBGain> {
+    SinglePoleLowPassApprox,
     SinglePoleLowPass,
     LowPass,
     HighPass,
@@ -98,7 +99,7 @@ impl Coefficients<f32> {
         let omega = 2.0 * core::f32::consts::PI * f0.hz() / fs.hz();
 
         match filter {
-            Type::SinglePoleLowPass => {
+            Type::SinglePoleLowPassApprox => {
                 let alpha = omega / (omega + 1.0);
 
                 Ok(Coefficients {
@@ -106,6 +107,18 @@ impl Coefficients<f32> {
                     a2: 0.0,
                     b0: alpha,
                     b1: 0.0,
+                    b2: 0.0,
+                })
+            }
+            Type::SinglePoleLowPass => {
+                let omega_t = (omega / 2.0).tan();
+                let a0 = 1.0 + omega_t;
+
+                Ok(Coefficients {
+                    a1: (omega_t - 1.0) / a0,
+                    a2: 0.0,
+                    b0: omega_t / a0,
+                    b1: omega_t / a0,
                     b2: 0.0,
                 })
             }
@@ -302,7 +315,7 @@ impl Coefficients<f64> {
         let omega = 2.0 * core::f64::consts::PI * f0.hz() / fs.hz();
 
         match filter {
-            Type::SinglePoleLowPass => {
+            Type::SinglePoleLowPassApprox => {
                 let alpha = omega / (omega + 1.0);
 
                 Ok(Coefficients {
@@ -310,6 +323,18 @@ impl Coefficients<f64> {
                     a2: 0.0,
                     b0: alpha,
                     b1: 0.0,
+                    b2: 0.0,
+                })
+            }
+            Type::SinglePoleLowPass => {
+                let omega_t = (omega / 2.0).tan();
+                let a0 = 1.0 + omega_t;
+
+                Ok(Coefficients {
+                    a1: (omega_t - 1.0) / a0,
+                    a2: 0.0,
+                    b0: omega_t / a0,
+                    b1: omega_t / a0,
                     b2: 0.0,
                 })
             }
