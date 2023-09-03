@@ -61,10 +61,7 @@ pub use crate::coefficients::*;
 pub use crate::frequency::*;
 
 /// The required functions of a biquad implementation
-pub trait Biquad<T>
-where
-    T: Float,
-{
+pub trait Biquad<T: Float> {
     /// A single iteration of a biquad, applying the filtering on the input
     fn run(&mut self, input: T) -> T;
 
@@ -89,10 +86,7 @@ pub enum Errors {
 
 /// Internal states and coefficients of the Direct Form 1 form
 #[derive(Copy, Clone, Debug)]
-pub struct DirectForm1<T>
-where
-    T: Float,
-{
+pub struct DirectForm1<T: Float> {
     y1: T,
     y2: T,
     x1: T,
@@ -102,30 +96,27 @@ where
 
 /// Internal states and coefficients of the Direct Form 2 Transposed form
 #[derive(Copy, Clone, Debug)]
-pub struct DirectForm2Transposed<T>
-where
-    T: Float,
-{
+pub struct DirectForm2Transposed<T: Float> {
     pub s1: T,
     pub s2: T,
     coeffs: Coefficients<T>,
 }
 
-impl DirectForm1<f32> {
+impl<T: Float> DirectForm1<T> {
     /// Creates a Direct Form 1 biquad from a set of filter coefficients
-    pub fn new(coefficients: Coefficients<f32>) -> Self {
+    pub fn new(coefficients: Coefficients<T>) -> Self {
         DirectForm1 {
-            y1: 0.0_f32,
-            y2: 0.0_f32,
-            x1: 0.0_f32,
-            x2: 0.0_f32,
+            y1: T::zero(),
+            y2: T::zero(),
+            x1: T::zero(),
+            x2: T::zero(),
             coeffs: coefficients,
         }
     }
 }
 
-impl Biquad<f32> for DirectForm1<f32> {
-    fn run(&mut self, input: f32) -> f32 {
+impl<T: Float> Biquad<T> for DirectForm1<T> {
+    fn run(&mut self, input: T) -> T {
         let out = self.coeffs.b0 * input + self.coeffs.b1 * self.x1 + self.coeffs.b2 * self.x2
             - self.coeffs.a1 * self.y1
             - self.coeffs.a2 * self.y2;
@@ -138,78 +129,35 @@ impl Biquad<f32> for DirectForm1<f32> {
         out
     }
 
-    fn update_coefficients(&mut self, new_coefficients: Coefficients<f32>) {
+    fn update_coefficients(&mut self, new_coefficients: Coefficients<T>) {
         self.coeffs = new_coefficients;
     }
 
-    fn replace_coefficients(&mut self, new_coefficients: Coefficients<f32>) -> Coefficients<f32> {
+    fn replace_coefficients(&mut self, new_coefficients: Coefficients<T>) -> Coefficients<T> {
         core::mem::replace(&mut self.coeffs, new_coefficients)
     }
 
     fn reset_state(&mut self) {
-        self.x1 = 0.;
-        self.x2 = 0.;
-        self.y1 = 0.;
-        self.y2 = 0.;
+        self.x1 = T::zero();
+        self.x2 = T::zero();
+        self.y1 = T::zero();
+        self.y2 = T::zero();
     }
 }
 
-impl DirectForm1<f64> {
-    /// Creates a Direct Form 1 biquad from a set of filter coefficients
-    pub fn new(coefficients: Coefficients<f64>) -> Self {
-        DirectForm1 {
-            y1: 0.0_f64,
-            y2: 0.0_f64,
-            x1: 0.0_f64,
-            x2: 0.0_f64,
-            coeffs: coefficients,
-        }
-    }
-}
-
-impl Biquad<f64> for DirectForm1<f64> {
-    fn run(&mut self, input: f64) -> f64 {
-        let out = self.coeffs.b0 * input + self.coeffs.b1 * self.x1 + self.coeffs.b2 * self.x2
-            - self.coeffs.a1 * self.y1
-            - self.coeffs.a2 * self.y2;
-
-        self.x2 = self.x1;
-        self.x1 = input;
-        self.y2 = self.y1;
-        self.y1 = out;
-
-        out
-    }
-
-    fn update_coefficients(&mut self, new_coefficients: Coefficients<f64>) {
-        self.coeffs = new_coefficients;
-    }
-
-    fn replace_coefficients(&mut self, new_coefficients: Coefficients<f64>) -> Coefficients<f64> {
-        core::mem::replace(&mut self.coeffs, new_coefficients)
-    }
-
-    fn reset_state(&mut self) {
-        self.x1 = 0.;
-        self.x2 = 0.;
-        self.y1 = 0.;
-        self.y2 = 0.;
-    }
-}
-
-impl DirectForm2Transposed<f32> {
+impl<T: Float> DirectForm2Transposed<T> {
     /// Creates a Direct Form 2 Transposed biquad from a set of filter coefficients
-    pub fn new(coefficients: Coefficients<f32>) -> Self {
+    pub fn new(coefficients: Coefficients<T>) -> Self {
         DirectForm2Transposed {
-            s1: 0.0_f32,
-            s2: 0.0_f32,
+            s1: T::zero(),
+            s2: T::zero(),
             coeffs: coefficients,
         }
     }
 }
 
-impl Biquad<f32> for DirectForm2Transposed<f32> {
-    fn run(&mut self, input: f32) -> f32 {
+impl<T: Float> Biquad<T> for DirectForm2Transposed<T> {
+    fn run(&mut self, input: T) -> T {
         let out = self.s1 + self.coeffs.b0 * input;
         self.s1 = self.s2 + self.coeffs.b1 * input - self.coeffs.a1 * out;
         self.s2 = self.coeffs.b2 * input - self.coeffs.a2 * out;
@@ -217,51 +165,17 @@ impl Biquad<f32> for DirectForm2Transposed<f32> {
         out
     }
 
-    fn update_coefficients(&mut self, new_coefficients: Coefficients<f32>) {
+    fn update_coefficients(&mut self, new_coefficients: Coefficients<T>) {
         self.coeffs = new_coefficients;
     }
 
-    fn replace_coefficients(&mut self, new_coefficients: Coefficients<f32>) -> Coefficients<f32> {
+    fn replace_coefficients(&mut self, new_coefficients: Coefficients<T>) -> Coefficients<T> {
         core::mem::replace(&mut self.coeffs, new_coefficients)
     }
 
     fn reset_state(&mut self) {
-        self.s1 = 0.;
-        self.s2 = 0.;
-    }
-}
-
-impl DirectForm2Transposed<f64> {
-    /// Creates a Direct Form 2 Transposed biquad from a set of filter coefficients
-    pub fn new(coefficients: Coefficients<f64>) -> Self {
-        DirectForm2Transposed {
-            s1: 0.0_f64,
-            s2: 0.0_f64,
-            coeffs: coefficients,
-        }
-    }
-}
-
-impl Biquad<f64> for DirectForm2Transposed<f64> {
-    fn run(&mut self, input: f64) -> f64 {
-        let out = self.s1 + self.coeffs.b0 * input;
-        self.s1 = self.s2 + self.coeffs.b1 * input - self.coeffs.a1 * out;
-        self.s2 = self.coeffs.b2 * input - self.coeffs.a2 * out;
-
-        out
-    }
-
-    fn update_coefficients(&mut self, new_coefficients: Coefficients<f64>) {
-        self.coeffs = new_coefficients;
-    }
-
-    fn replace_coefficients(&mut self, new_coefficients: Coefficients<f64>) -> Coefficients<f64> {
-        core::mem::replace(&mut self.coeffs, new_coefficients)
-    }
-
-    fn reset_state(&mut self) {
-        self.s1 = 0.;
-        self.s2 = 0.;
+        self.s1 = T::zero();
+        self.s2 = T::zero();
     }
 }
 
