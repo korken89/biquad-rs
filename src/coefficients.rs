@@ -78,9 +78,9 @@ pub struct Coefficients<T: Float> {
 }
 
 impl<T: Float> Coefficients<T> {
-    /// Creates coefficients based on the biquad filter type, sampling and cutoff frequency, and Q
-    /// value. Note that the cutoff frequency must be smaller than half the sampling frequency and
-    /// that Q may not be negative, this will result in an `Err()`.
+    /// Creates coefficients based on the biquad filter type, normalized cutoff frequency, and Q
+    /// value. Note that the cutoff frequency must be smaller than 0.5 and that Q may not be negative,
+    ///  this will result in an `Err()`.
     pub fn from_normalized_params(
         filter: Type<T>,
         normalized_f0: T,
@@ -287,6 +287,9 @@ impl<T: Float> Coefficients<T> {
             }
         }
     }
+    /// Creates coefficients based on the biquad filter type, sampling and cutoff frequency, and Q
+    /// value. Note that the cutoff frequency must be smaller than half the sampling frequency and
+    /// that Q may not be negative, this will result in an `Err()`.
     pub fn from_params(
         filter: Type<T>,
         fs: Hertz<T>,
