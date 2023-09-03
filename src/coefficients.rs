@@ -66,10 +66,7 @@ pub enum Type<DBGain> {
 
 /// Holder of the biquad coefficients, utilizes normalized form
 #[derive(Clone, Copy, Debug)]
-pub struct Coefficients<T>
-where
-    T: Float,
-{
+pub struct Coefficients<T: Float> {
     // Denominator coefficients
     pub a1: T,
     pub a2: T,
@@ -80,10 +77,7 @@ where
     pub b2: T,
 }
 
-impl<T> Coefficients<T>
-where
-    T: Float,
-{
+impl<T: Float> Coefficients<T> {
     /// Creates coefficients based on the biquad filter type, sampling and cutoff frequency, and Q
     /// value. Note that the cutoff frequency must be smaller than half the sampling frequency and
     /// that Q may not be negative, this will result in an `Err()`.
@@ -106,6 +100,18 @@ where
         }
         let omega = TWO * PI * normalized_f0;
 
+        // The code for omega_s/c and alpha is hidden behind a condition due to the single pole
+        // low pass filter not needing it and when creating coefficients are commonly
+        // assumed to be of low computational complexity.
+        let (omega_s, omega_c, alpha) = match filter {
+            Type::SinglePoleLowPassApprox | Type::SinglePoleLowPass => {
+                (T::nan(), T::nan(), T::nan())
+            }
+            _ => {
+                let omega_s = omega.sin();
+                (omega_s, omega.cos(), omega_s / (TWO * q_value))
+            }
+        };
         match filter {
             Type::SinglePoleLowPassApprox => {
                 let alpha = omega / (omega + T::one());
@@ -131,13 +137,6 @@ where
                 })
             }
             Type::LowPass => {
-                // The code for omega_s/c and alpha is currently duplicated due to the single pole
-                // low pass filter not needing it and when creating coefficients are commonly
-                // assumed to be of low computational complexity.
-                let omega_s = omega.sin();
-                let omega_c = omega.cos();
-                let alpha = omega_s / (TWO * q_value);
-
                 let b0 = (T::one() - omega_c) / TWO;
                 let b1 = T::one() - omega_c;
                 let b2 = (T::one() - omega_c) / TWO;
@@ -154,10 +153,6 @@ where
                 })
             }
             Type::HighPass => {
-                let omega_s = omega.sin();
-                let omega_c = omega.cos();
-                let alpha = omega_s / (TWO * q_value);
-
                 let b0 = (T::one() + omega_c) / TWO;
                 let b1 = -(T::one() + omega_c);
                 let b2 = (T::one() + omega_c) / TWO;
@@ -174,10 +169,6 @@ where
                 })
             }
             Type::BandPass => {
-                let omega_s = omega.sin();
-                let omega_c = omega.cos();
-                let alpha = omega_s / (TWO * q_value);
-
                 let b0 = omega_s / TWO;
                 let b1 = T::zero();
                 let b2 = -(omega_s / TWO);
@@ -196,10 +187,6 @@ where
                 })
             }
             Type::Notch => {
-                let omega_s = omega.sin();
-                let omega_c = omega.cos();
-                let alpha = omega_s / (TWO * q_value);
-
                 let b0 = T::one();
                 let b1 = -TWO * omega_c;
                 let b2 = T::one();
@@ -216,10 +203,6 @@ where
                 })
             }
             Type::AllPass => {
-                let omega_s = omega.sin();
-                let omega_c = omega.cos();
-                let alpha = omega_s / (TWO * q_value);
-
                 let b0 = T::one() - alpha;
                 let b1 = -TWO * omega_c;
                 let b2 = T::one() + alpha;
@@ -237,9 +220,6 @@ where
             }
             Type::LowShelf(db_gain) => {
                 let a = T::from(T::from(10).unwrap().powf(db_gain / FORTY)).unwrap();
-                let omega_s = omega.sin();
-                let omega_c = omega.cos();
-                let alpha = omega_s / (TWO * q_value);
 
                 let b0 = a * ((a + T::one()) - (a - T::one()) * omega_c + TWO * alpha * a.sqrt());
                 let b1 = TWO * a * ((a - T::one()) - (a + T::one()) * omega_c);
@@ -258,9 +238,6 @@ where
             }
             Type::HighShelf(db_gain) => {
                 let a = T::from(T::from(10).unwrap().powf(db_gain / FORTY)).unwrap();
-                let omega_s = omega.sin();
-                let omega_c = omega.cos();
-                let alpha = omega_s / (TWO * q_value);
 
                 let b0 = a * ((a + T::one()) + (a - T::one()) * omega_c + TWO * alpha * a.sqrt());
                 let b1 = -TWO * a * ((a - T::one()) + (a + T::one()) * omega_c);
@@ -279,9 +256,6 @@ where
             }
             Type::PeakingEQ(db_gain) => {
                 let a = T::from(T::from(10).unwrap().powf(db_gain / FORTY)).unwrap();
-                let omega_s = omega.sin();
-                let omega_c = omega.cos();
-                let alpha = omega_s / (TWO * q_value);
 
                 let b0 = T::one() + alpha * a;
                 let b1 = -TWO * omega_c;
