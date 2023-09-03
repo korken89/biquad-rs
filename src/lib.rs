@@ -55,18 +55,23 @@
 pub mod coefficients;
 pub mod frequency;
 
+use num_traits::Float;
+
 pub use crate::coefficients::*;
 pub use crate::frequency::*;
 
 /// The required functions of a biquad implementation
-pub trait Biquad<T> {
+pub trait Biquad<T>
+where
+    T: Float,
+{
     /// A single iteration of a biquad, applying the filtering on the input
     fn run(&mut self, input: T) -> T;
 
     /// Updating of coefficients
     fn update_coefficients(&mut self, new_coefficients: Coefficients<T>);
 
-    /// Updating coefficients and returning the old ones. This is useful to avoid deallocating on the audio thread, since 
+    /// Updating coefficients and returning the old ones. This is useful to avoid deallocating on the audio thread, since
     /// the `Coefficients` can then be sent to another thread for deallocation.
     fn replace_coefficients(&mut self, new_coefficients: Coefficients<T>) -> Coefficients<T>;
 
@@ -84,7 +89,10 @@ pub enum Errors {
 
 /// Internal states and coefficients of the Direct Form 1 form
 #[derive(Copy, Clone, Debug)]
-pub struct DirectForm1<T> {
+pub struct DirectForm1<T>
+where
+    T: Float,
+{
     y1: T,
     y2: T,
     x1: T,
@@ -94,7 +102,10 @@ pub struct DirectForm1<T> {
 
 /// Internal states and coefficients of the Direct Form 2 Transposed form
 #[derive(Copy, Clone, Debug)]
-pub struct DirectForm2Transposed<T> {
+pub struct DirectForm2Transposed<T>
+where
+    T: Float,
+{
     pub s1: T,
     pub s2: T,
     coeffs: Coefficients<T>,
@@ -254,7 +265,6 @@ impl Biquad<f64> for DirectForm2Transposed<f64> {
     }
 }
 
-
 #[cfg(test)]
 #[macro_use]
 extern crate std;
@@ -302,7 +312,7 @@ mod tests {
     #[test]
     #[should_panic]
     fn test_frequency_panic() {
-        let _f1 = (-10.0).hz();
+        let _f1: Hertz<f32> = (-10.0f32).hz();
     }
 
     #[test]
