@@ -41,9 +41,7 @@ use crate::{frequency::Hertz, Errors};
 
 // For some reason this is not detected properly
 
-#[allow(unused_imports)]
-use libm::{self, Libm};
-use num_traits::{Float, FloatConst};
+use num_traits::Float;
 /// Common Q value of the Butterworth low-pass filter
 pub const Q_BUTTERWORTH_F32: f32 = core::f32::consts::FRAC_1_SQRT_2;
 pub const Q_BUTTERWORTH_F64: f64 = core::f64::consts::FRAC_1_SQRT_2;
@@ -94,8 +92,11 @@ where
         normalized_f0: T,
         q_value: T,
     ) -> Result<Coefficients<T>, Errors> {
+        #[allow(non_snake_case)]
         let TWO: T = T::from(2).unwrap();
+        #[allow(non_snake_case)]
         let PI: T = T::from(core::f64::consts::PI).unwrap();
+        #[allow(non_snake_case)]
         let FORTY: T = T::from(40).unwrap();
         if TWO * normalized_f0 > T::one() {
             return Err(Errors::OutsideNyquist);
