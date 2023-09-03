@@ -144,12 +144,14 @@ impl<T: Float> Coefficients<T> {
                 let a1 = -TWO * omega_c;
                 let a2 = T::one() - alpha;
 
+                let div = T::one() / a0;
+
                 Ok(Coefficients {
-                    a1: a1 / a0,
-                    a2: a2 / a0,
-                    b0: b0 / a0,
-                    b1: b1 / a0,
-                    b2: b2 / a0,
+                    a1: a1 * div,
+                    a2: a2 * div,
+                    b0: b0 * div,
+                    b1: b1 * div,
+                    b2: b2 * div,
                 })
             }
             Type::HighPass => {
@@ -160,12 +162,14 @@ impl<T: Float> Coefficients<T> {
                 let a1 = -TWO * omega_c;
                 let a2 = T::one() - alpha;
 
+                let div = T::one() / a0;
+
                 Ok(Coefficients {
-                    a1: a1 / a0,
-                    a2: a2 / a0,
-                    b0: b0 / a0,
-                    b1: b1 / a0,
-                    b2: b2 / a0,
+                    a1: a1 * div,
+                    a2: a2 * div,
+                    b0: b0 * div,
+                    b1: b1 * div,
+                    b2: b2 * div,
                 })
             }
             Type::BandPass => {
@@ -194,12 +198,14 @@ impl<T: Float> Coefficients<T> {
                 let a1 = -TWO * omega_c;
                 let a2 = T::one() - alpha;
 
+                let div = T::one() / a0;
+
                 Ok(Coefficients {
-                    a1: a1 / a0,
-                    a2: a2 / a0,
-                    b0: b0 / a0,
-                    b1: b1 / a0,
-                    b2: b2 / a0,
+                    a1: a1 * div,
+                    a2: a2 * div,
+                    b0: b0 * div,
+                    b1: b1 * div,
+                    b2: b2 * div,
                 })
             }
             Type::AllPass => {
@@ -210,17 +216,18 @@ impl<T: Float> Coefficients<T> {
                 let a1 = -TWO * omega_c;
                 let a2 = T::one() - alpha;
 
+                let div = T::one() / a0;
+
                 Ok(Coefficients {
-                    a1: a1 / a0,
-                    a2: a2 / a0,
-                    b0: b0 / a0,
-                    b1: b1 / a0,
-                    b2: b2 / a0,
+                    a1: a1 * div,
+                    a2: a2 * div,
+                    b0: b0 * div,
+                    b1: b1 * div,
+                    b2: b2 * div,
                 })
             }
             Type::LowShelf(db_gain) => {
                 let a = T::from(T::from(10).unwrap().powf(db_gain / FORTY)).unwrap();
-
                 let b0 = a * ((a + T::one()) - (a - T::one()) * omega_c + TWO * alpha * a.sqrt());
                 let b1 = TWO * a * ((a - T::one()) - (a + T::one()) * omega_c);
                 let b2 = a * ((a + T::one()) - (a - T::one()) * omega_c - TWO * alpha * a.sqrt());
@@ -228,12 +235,14 @@ impl<T: Float> Coefficients<T> {
                 let a1 = -TWO * ((a - T::one()) + (a + T::one()) * omega_c);
                 let a2 = (a + T::one()) + (a - T::one()) * omega_c - TWO * alpha * a.sqrt();
 
+                let div = T::one() / a0;
+
                 Ok(Coefficients {
-                    a1: a1 / a0,
-                    a2: a2 / a0,
-                    b0: b0 / a0,
-                    b1: b1 / a0,
-                    b2: b2 / a0,
+                    a1: a1 * div,
+                    a2: a2 * div,
+                    b0: b0 * div,
+                    b1: b1 * div,
+                    b2: b2 * div,
                 })
             }
             Type::HighShelf(db_gain) => {
@@ -246,12 +255,14 @@ impl<T: Float> Coefficients<T> {
                 let a1 = TWO * ((a - T::one()) - (a + T::one()) * omega_c);
                 let a2 = (a + T::one()) - (a - T::one()) * omega_c - TWO * alpha * a.sqrt();
 
+                let div = T::one() / a0;
+
                 Ok(Coefficients {
-                    a1: a1 / a0,
-                    a2: a2 / a0,
-                    b0: b0 / a0,
-                    b1: b1 / a0,
-                    b2: b2 / a0,
+                    a1: a1 * div,
+                    a2: a2 * div,
+                    b0: b0 * div,
+                    b1: b1 * div,
+                    b2: b2 * div,
                 })
             }
             Type::PeakingEQ(db_gain) => {
@@ -264,12 +275,14 @@ impl<T: Float> Coefficients<T> {
                 let a1 = -TWO * omega_c;
                 let a2 = T::one() - alpha / a;
 
+                let div = T::one() / a0;
+
                 Ok(Coefficients {
-                    a1: a1 / a0,
-                    a2: a2 / a0,
-                    b0: b0 / a0,
-                    b1: b1 / a0,
-                    b2: b2 / a0,
+                    a1: a1 * div,
+                    a2: a2 * div,
+                    b0: b0 * div,
+                    b1: b1 * div,
+                    b2: b2 * div,
                 })
             }
         }
