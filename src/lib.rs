@@ -63,6 +63,7 @@ pub use crate::frequency::*;
 /// The required functions of a biquad implementation
 pub trait Biquad<T: Float> {
     /// A single iteration of a biquad, applying the filtering on the input
+
     fn run(&mut self, input: T) -> T;
 
     /// Updating of coefficients
@@ -185,6 +186,7 @@ extern crate std;
 
 #[cfg(test)]
 mod tests {
+
     use crate::*;
 
     #[test]
@@ -247,11 +249,11 @@ mod tests {
 
     #[test]
     fn test_coefficients_normal_f32() {
-        let f0 = 10.hz();
+        let f0 = 100.hz();
         let fs = 1.khz();
 
         let coeffs = Coefficients::<f32>::from_params(Type::LowPass, fs, f0, Q_BUTTERWORTH_F32);
-
+        println!("{:?}", coeffs.unwrap());
         match coeffs {
             Ok(_) => {}
             Err(_) => {
@@ -389,5 +391,50 @@ mod tests {
             output_vec1.push(biquad1.run(elem));
             output_vec2.push(biquad2.run(elem));
         }
+    }
+
+    #[test]
+    fn test_biquad_vs_scipy() {
+        use rand::prelude::*;
+        use std::process::Command;
+        use std::string::String;
+        use std::vec::Vec;
+        let normalize_f0 = 0.0;
+        let mut rng = rand::thread_rng();
+
+        let coeffs: Coefficients<f32> = Coefficients::<f32>::from_normalized_params(
+            Type::LowPass,
+            normalize_f0,
+            Q_BUTTERWORTH_F32,
+        )
+        .unwrap();
+
+        let mut biquad = DirectForm1::<f32>::new(coeffs);
+        let mut in_vec = Vec::<f32>::with_capacity(1000);
+        let mut out_vec = Vec::<f32>::with_capacity(1000);
+        for i in 0..in_vec.capacity() {
+            let x = ((i as f32) * 0.01).sin() + rng.gen::<f32>();
+            in_vec.push(x);
+            out_vec.push(biquad.run(x));
+        }
+        let in_vec_str = format!("{:?}", in_vec);
+
+        let cmd_output = Command::new("python")
+            .args(["test/comparaison_to_scipy.py", in_vec_str.as_str()])
+            .output()
+            .expect("You need python and scipy and numpy to run this one.");
+        println!("stderr {}", String::from_utf8(cmd_output.stderr).unwrap());
+        let py_res = String::from_utf8(cmd_output.stdout).unwrap();
+        println!("stdout {}", &py_res);
+        let py_res_parsed_vec: Vec<_> = py_res
+            .split(",")
+            .map(|x| x.parse::<f32>().unwrap())
+            .collect();
+        let sum_err: f32 = py_res_parsed_vec
+            .iter()
+            .zip(out_vec)
+            .map(|(x, y)| (x - y).abs())
+            .sum();
+        assert!(sum_err <= 1e-6);
     }
 }
