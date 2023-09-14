@@ -75,7 +75,8 @@ impl<T: Float, X: NumCast> ToHertz<T> for X {
 }
 
 impl<T: Float> Hertz<T> {
-    pub fn from_hz(hz: T) -> Result<Self, Errors> {
+    pub fn from_hz(hz: impl Into<T>) -> Result<Self, Errors> {
+        let hz = hz.into();
         if hz > T::zero() {
             Ok(Hertz(hz))
         } else {
@@ -83,7 +84,8 @@ impl<T: Float> Hertz<T> {
         }
     }
 
-    pub fn from_dt(dt: T) -> Result<Self, Errors> {
+    pub fn from_dt(dt: impl Into<T>) -> Result<Self, Errors> {
+        let dt = dt.into();
         if dt > T::zero() {
             Ok(Hertz(T::one() / dt))
         } else {

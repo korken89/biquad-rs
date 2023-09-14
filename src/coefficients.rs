@@ -296,6 +296,7 @@ impl<T: Float> Coefficients<T> {
         f0: Hertz<T>,
         q_value: T,
     ) -> Result<Coefficients<T>, Errors> {
-        Self::from_normalized_params(filter, f0.hz() / fs.hz(), q_value)
+        let normalized_f0 = f0.hz() / fs.hz();
+        Self::from_normalized_params(filter, normalized_f0, q_value)
     }
 }
