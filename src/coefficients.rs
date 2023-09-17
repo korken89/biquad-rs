@@ -79,10 +79,13 @@ pub struct Coefficients<T: Float> {
 
 impl<T: Float> Coefficients<T> {
     /// Creates coefficients based on the biquad filter type, normalized cutoff frequency, and Q
-    /// value. Note that the cutoff frequency must be smaller than 0.5 and that Q may not be negative,
+    /// value. Note that the cutoff frequency must be smaller than 1 and that Q may not be negative,
     ///  this will result in an `Err()`.
+    /// * `filter_type` - Type of filter desired
+    /// * `normalized_f0` - Cut frequency devided by two times sampling frequency (0<F_cut<1 respects the shanon condition)
+    /// * `q_value` - Text about bar.
     pub fn from_normalized_params(
-        filter: Type<T>,
+        filter_type: Type<T>,
         normalized_f0: T,
         q_value: T,
     ) -> Result<Coefficients<T>, Errors> {
@@ -92,18 +95,18 @@ impl<T: Float> Coefficients<T> {
         let PI: T = T::from(core::f64::consts::PI).unwrap();
         #[allow(non_snake_case)]
         let FORTY: T = T::from(40).unwrap();
-        if TWO * normalized_f0 > T::one() {
+        if normalized_f0 >= T::one() || normalized_f0 < T::zero() {
             return Err(Errors::OutsideNyquist);
         }
-        if q_value < T::zero() {
+        if q_value <= T::zero() {
             return Err(Errors::NegativeQ);
         }
-        let omega = TWO * PI * normalized_f0;
+        let omega = PI * normalized_f0;
 
         // The code for omega_s/c and alpha is hidden behind a condition due to the single pole
         // low pass filter not needing it and when creating coefficients are commonly
         // assumed to be of low computational complexity.
-        let (omega_s, omega_c, alpha) = match filter {
+        let (omega_s, omega_c, alpha) = match filter_type {
             Type::SinglePoleLowPassApprox | Type::SinglePoleLowPass => {
                 (T::nan(), T::nan(), T::nan())
             }
@@ -112,7 +115,7 @@ impl<T: Float> Coefficients<T> {
                 (omega_s, omega.cos(), omega_s / (TWO * q_value))
             }
         };
-        match filter {
+        match filter_type {
             Type::SinglePoleLowPassApprox => {
                 let alpha = omega / (omega + T::one());
 
@@ -296,7 +299,7 @@ impl<T: Float> Coefficients<T> {
         f0: Hertz<T>,
         q_value: T,
     ) -> Result<Coefficients<T>, Errors> {
-        let normalized_f0 = f0.hz() / fs.hz();
+        let normalized_f0 = f0.hz() / (T::from(2).unwrap() * fs.hz());
         Self::from_normalized_params(filter, normalized_f0, q_value)
     }
 }
