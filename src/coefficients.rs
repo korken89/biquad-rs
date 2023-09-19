@@ -41,7 +41,7 @@ use crate::{frequency::Hertz, Errors};
 
 // For some reason this is not detected properly
 
-use num_traits::Float;
+use num_traits::{real::Real, Float, FloatConst};
 /// Common Q value of the Butterworth low-pass filter
 pub const Q_BUTTERWORTH_F32: f32 = core::f32::consts::FRAC_1_SQRT_2;
 pub const Q_BUTTERWORTH_F64: f64 = core::f64::consts::FRAC_1_SQRT_2;
@@ -50,7 +50,7 @@ pub const Q_BUTTERWORTH_F64: f64 = core::f64::consts::FRAC_1_SQRT_2;
 /// retune, as all other filter types require evaluations of sin/cos functions
 /// The `LowShelf`, `HighShelf`, and `PeakingEQ` all have a gain value for its
 /// field, and represents the gain, in decibels, that the filter provides.
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum Type<DBGain> {
     SinglePoleLowPassApprox,
     SinglePoleLowPass,
@@ -301,5 +301,34 @@ impl<T: Float> Coefficients<T> {
     ) -> Result<Coefficients<T>, Errors> {
         let normalized_f0 = f0.hz() / (T::from(2).unwrap() * fs.hz());
         Self::from_normalized_params(filter, normalized_f0, q_value)
+    }
+
+    //
+    pub fn band_0dB_from_cutting_frequencies(
+        filter_type: Type<T>,
+        normalized_f01: T,
+        normalized_f02: T,
+    ) -> Result<Coefficients<T>, Errors> {
+        if normalized_f01 < T::zero()
+            || normalized_f02 < T::zero()
+            || normalized_f01 > T::one()
+            || normalized_f02 > T::one()
+            || normalized_f01 > normalized_f02
+        {
+            return Err(Errors::OutsideNyquist);
+        }
+        #[allow(non_snake_case)]
+        let TWO: T = T::from(2).unwrap();
+        assert!(filter_type == Type::<_>::BandPass || filter_type == Type::<_>::Notch);
+        let frac_freq: T = normalized_f02 / normalized_f01;
+        let bw_in_octaves = frac_freq.log2();
+        let normalized_f0 = TWO.powf(normalized_f01.log2() + bw_in_octaves / TWO);
+        // #[allow(non_snake_case)]
+        // let PI: T = T::from(core::f64::consts::PI).unwrap();
+        // let omega_0 = PI * normalized_f0;
+        //
+        // let q_value =
+        //     T::one() / (TWO * (TWO.ln() * bw_in_octaves * (omega_0 / omega_0.sin()) / TWO).sinh());
+        Self::from_normalized_params(filter_type, normalized_f0, T::one())
     }
 }

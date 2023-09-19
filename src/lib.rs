@@ -394,7 +394,7 @@ mod tests {
     }
 
     #[test]
-    fn test_biquad_vs_scipy() {
+    fn test_biquad_lowpass_vs_scipy() {
         use rand::prelude::*;
         use std::process::Command;
         use std::string::String;
@@ -422,7 +422,7 @@ mod tests {
 
         let cmd_output = Command::new("python")
             .args([
-                "test/comparaison_to_scipy.py",
+                "test/comparaison_lowpass_to_scipy.py",
                 format!("{normalize_f0}").as_str(),
                 in_vec_str.as_str(),
                 out_vec_str.as_str(),
@@ -457,5 +457,72 @@ mod tests {
         println!("Average absolute error = {avg_error}");
 
         assert!(avg_error <= 1e-6);
+    }
+    #[test]
+    fn test_biquad_notch_vs_scipy() {
+        use core::f32::consts::PI;
+        use rand::prelude::*;
+        use std::process::Command;
+        use std::string::String;
+        use std::vec::Vec;
+        let mut rng = rand::thread_rng();
+        let f0 = 0.2;
+        let w0 = PI * f0;
+        let normalize_f01 = f0 / 2.;
+        let normalize_f02 = f0 * 2.;
+        let coeffs: Coefficients<f32> = Coefficients::<f32>::band_0dB_from_cutting_frequencies(
+            Type::BandPass,
+            normalize_f01,
+            normalize_f02,
+        )
+        .unwrap();
+        let mut biquad = DirectForm1::<f32>::new(coeffs);
+        let vec_capacity = 1000;
+        let mut in_vec = Vec::<f32>::with_capacity(vec_capacity);
+        let mut out_vec = Vec::<f32>::with_capacity(vec_capacity);
+        for i in 0..vec_capacity {
+            let x = ((i as f32) * w0).sin() + rng.gen::<f32>();
+            in_vec.push(x);
+            out_vec.push(biquad.run(x));
+        }
+        let in_vec_str = format!("{:?}", in_vec);
+        let out_vec_str = format!("{:?}", out_vec);
+
+        let cmd_output = Command::new("python")
+            .args([
+                "test/comparaison_notch_to_scipy.py",
+                format!("{normalize_f01}").as_str(),
+                format!("{normalize_f02}").as_str(),
+                in_vec_str.as_str(),
+                out_vec_str.as_str(),
+            ])
+            .output()
+            .expect("You need python and scipy and numpy to run this one.");
+        let py_res_stderr = String::from_utf8(cmd_output.stderr).unwrap();
+        if !py_res_stderr.is_empty() {
+            println!("{:?}", py_res_stderr);
+        }
+        let py_res = String::from_utf8(cmd_output.stdout).unwrap();
+        let py_res_parsed_vec: Vec<_> = py_res
+            .split(",")
+            .map_while(|x| {
+                let a = x.trim().parse::<f32>();
+                if let Ok(fl) = a {
+                    return Some(fl);
+                }
+                return None;
+            })
+            .collect();
+        let sum_err: f32 = py_res_parsed_vec
+            .iter()
+            .zip(out_vec)
+            .map(|(x, y)| (x - y).abs())
+            .sum();
+        let avg_error = sum_err / (in_vec.len() as f32);
+        println!("Sum of absolute error = {sum_err}");
+        println!("Average absolute error = {avg_error}");
+
+        assert!(avg_error <= 1e-1);
+        assert!(py_res_stderr.is_empty());
     }
 }
