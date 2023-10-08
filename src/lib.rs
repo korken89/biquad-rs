@@ -470,7 +470,7 @@ mod tests {
         let w0 = PI * f0;
         let normalize_f01 = f0 / 2.;
         let normalize_f02 = f0 * 2.;
-        let coeffs: Coefficients<f32> = Coefficients::<f32>::band_0dB_from_cutting_frequencies(
+        let coeffs: Coefficients<f32> = Coefficients::<f32>::band_0db_from_cutting_frequencies(
             Type::BandPass,
             normalize_f01,
             normalize_f02,

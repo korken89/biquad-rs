@@ -41,7 +41,7 @@ use crate::{frequency::Hertz, Errors};
 
 // For some reason this is not detected properly
 
-use num_traits::{real::Real, Float, FloatConst};
+use num_traits::Float;
 /// Common Q value of the Butterworth low-pass filter
 pub const Q_BUTTERWORTH_F32: f32 = core::f32::consts::FRAC_1_SQRT_2;
 pub const Q_BUTTERWORTH_F64: f64 = core::f64::consts::FRAC_1_SQRT_2;
@@ -304,7 +304,7 @@ impl<T: Float> Coefficients<T> {
     }
 
     //
-    pub fn band_0dB_from_cutting_frequencies(
+    pub fn band_0db_from_cutting_frequencies(
         filter_type: Type<T>,
         normalized_f01: T,
         normalized_f02: T,
