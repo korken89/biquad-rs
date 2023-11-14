@@ -38,10 +38,7 @@
 //! negative.
 
 use crate::{frequency::Hertz, Errors};
-
-// For some reason this is not detected properly
-#[allow(unused_imports)]
-use libm::{F32Ext, F64Ext};
+use libm::{tan,tanf,sin,sinf,cos,cosf,pow,powf,sqrt,sqrtf};
 
 /// Common Q value of the Butterworth low-pass filter
 pub const Q_BUTTERWORTH_F32: f32 = core::f32::consts::FRAC_1_SQRT_2;
@@ -111,7 +108,7 @@ impl Coefficients<f32> {
                 })
             }
             Type::SinglePoleLowPass => {
-                let omega_t = (omega / 2.0).tan();
+                let omega_t = tanf(omega / 2.0);
                 let a0 = 1.0 + omega_t;
 
                 Ok(Coefficients {
@@ -126,8 +123,8 @@ impl Coefficients<f32> {
                 // The code for omega_s/c and alpha is currently duplicated due to the single pole
                 // low pass filter not needing it and when creating coefficients are commonly
                 // assumed to be of low computational complexity.
-                let omega_s = omega.sin();
-                let omega_c = omega.cos();
+                let omega_s = sinf(omega);
+                let omega_c = cosf(omega);
                 let alpha = omega_s / (2.0 * q_value);
 
                 let b0 = (1.0 - omega_c) * 0.5;
@@ -146,8 +143,8 @@ impl Coefficients<f32> {
                 })
             }
             Type::HighPass => {
-                let omega_s = omega.sin();
-                let omega_c = omega.cos();
+                let omega_s = sinf(omega);
+                let omega_c = cosf(omega);
                 let alpha = omega_s / (2.0 * q_value);
 
                 let b0 = (1.0 + omega_c) * 0.5;
@@ -166,8 +163,8 @@ impl Coefficients<f32> {
                 })
             }
             Type::BandPass => {
-                let omega_s = omega.sin();
-                let omega_c = omega.cos();
+                let omega_s = sinf(omega);
+                let omega_c = cosf(omega);
                 let alpha = omega_s / (2.0 * q_value);
 
                 let b0 = omega_s / 2.0;
@@ -188,8 +185,8 @@ impl Coefficients<f32> {
                 })
             }
             Type::Notch => {
-                let omega_s = omega.sin();
-                let omega_c = omega.cos();
+                let omega_s = sinf(omega);
+                let omega_c = cosf(omega);
                 let alpha = omega_s / (2.0 * q_value);
 
                 let b0 = 1.0;
@@ -208,8 +205,8 @@ impl Coefficients<f32> {
                 })
             }
             Type::AllPass => {
-                let omega_s = omega.sin();
-                let omega_c = omega.cos();
+                let omega_s = sinf(omega);
+                let omega_c = cosf(omega);
                 let alpha = omega_s / (2.0 * q_value);
 
                 let b0 = 1.0 - alpha;
@@ -228,17 +225,17 @@ impl Coefficients<f32> {
                 })
             }
             Type::LowShelf(db_gain) => {
-                let a = 10.0f32.powf(db_gain / 40.0);
-                let omega_s = omega.sin();
-                let omega_c = omega.cos();
+                let a = powf(10.0f32, db_gain / 40.0);
+                let omega_s = sinf(omega);
+                let omega_c = cosf(omega);
                 let alpha = omega_s / (2.0 * q_value);
 
-                let b0 = a * ((a + 1.0) - (a - 1.0) * omega_c + 2.0 * alpha * a.sqrt());
+                let b0 = a * ((a + 1.0) - (a - 1.0) * omega_c + 2.0 * alpha * sqrtf(a));
                 let b1 = 2.0 * a * ((a - 1.0) - (a + 1.0) * omega_c);
-                let b2 = a * ((a + 1.0) - (a - 1.0) * omega_c - 2.0 * alpha * a.sqrt());
-                let a0 = (a + 1.0) + (a - 1.0) * omega_c + 2.0 * alpha * a.sqrt();
+                let b2 = a * ((a + 1.0) - (a - 1.0) * omega_c - 2.0 * alpha * sqrtf(a));
+                let a0 = (a + 1.0) + (a - 1.0) * omega_c + 2.0 * alpha * sqrtf(a);
                 let a1 = -2.0 * ((a - 1.0) + (a + 1.0) * omega_c);
-                let a2 = (a + 1.0) + (a - 1.0) * omega_c - 2.0 * alpha * a.sqrt();
+                let a2 = (a + 1.0) + (a - 1.0) * omega_c - 2.0 * alpha * sqrtf(a);
 
                 Ok(Coefficients {
                     a1: a1 / a0,
@@ -249,17 +246,17 @@ impl Coefficients<f32> {
                 })
             }
             Type::HighShelf(db_gain) => {
-                let a = 10.0f32.powf(db_gain / 40.0);
-                let omega_s = omega.sin();
-                let omega_c = omega.cos();
+                let a = powf(10.0f32, db_gain / 40.0);
+                let omega_s = sinf(omega);
+                let omega_c = cosf(omega);
                 let alpha = omega_s / (2.0 * q_value);
 
-                let b0 = a * ((a + 1.0) + (a - 1.0) * omega_c + 2.0 * alpha * a.sqrt());
+                let b0 = a * ((a + 1.0) + (a - 1.0) * omega_c + 2.0 * alpha * sqrtf(a));
                 let b1 = -2.0 * a * ((a - 1.0) + (a + 1.0) * omega_c);
-                let b2 = a * ((a + 1.0) + (a - 1.0) * omega_c - 2.0 * alpha * a.sqrt());
-                let a0 = (a + 1.0) - (a - 1.0) * omega_c + 2.0 * alpha * a.sqrt();
+                let b2 = a * ((a + 1.0) + (a - 1.0) * omega_c - 2.0 * alpha * sqrtf(a));
+                let a0 = (a + 1.0) - (a - 1.0) * omega_c + 2.0 * alpha * sqrtf(a);
                 let a1 = 2.0 * ((a - 1.0) - (a + 1.0) * omega_c);
-                let a2 = (a + 1.0) - (a - 1.0) * omega_c - 2.0 * alpha * a.sqrt();
+                let a2 = (a + 1.0) - (a - 1.0) * omega_c - 2.0 * alpha * sqrtf(a);
 
                 Ok(Coefficients {
                     a1: a1 / a0,
@@ -270,9 +267,9 @@ impl Coefficients<f32> {
                 })
             }
             Type::PeakingEQ(db_gain) => {
-                let a = 10.0f32.powf(db_gain / 40.0);
-                let omega_s = omega.sin();
-                let omega_c = omega.cos();
+                let a = powf(10.0f32, db_gain / 40.0);
+                let omega_s = sinf(omega);
+                let omega_c = cosf(omega);
                 let alpha = omega_s / (2.0 * q_value);
 
                 let b0 = 1.0 + alpha * a;
@@ -327,7 +324,7 @@ impl Coefficients<f64> {
                 })
             }
             Type::SinglePoleLowPass => {
-                let omega_t = (omega / 2.0).tan();
+                let omega_t = tan(omega / 2.0);
                 let a0 = 1.0 + omega_t;
 
                 Ok(Coefficients {
@@ -342,8 +339,8 @@ impl Coefficients<f64> {
                 // The code for omega_s/c and alpha is currently duplicated due to the single pole
                 // low pass filter not needing it and when creating coefficients are commonly
                 // assumed to be of low computational complexity.
-                let omega_s = omega.sin();
-                let omega_c = omega.cos();
+                let omega_s = sin(omega);
+                let omega_c = cos(omega);
                 let alpha = omega_s / (2.0 * q_value);
 
                 let b0 = (1.0 - omega_c) * 0.5;
@@ -364,8 +361,8 @@ impl Coefficients<f64> {
                 })
             }
             Type::HighPass => {
-                let omega_s = omega.sin();
-                let omega_c = omega.cos();
+                let omega_s = sin(omega);
+                let omega_c = cos(omega);
                 let alpha = omega_s / (2.0 * q_value);
 
                 let b0 = (1.0 + omega_c) * 0.5;
@@ -386,8 +383,8 @@ impl Coefficients<f64> {
                 })
             }
             Type::Notch => {
-                let omega_s = omega.sin();
-                let omega_c = omega.cos();
+                let omega_s = sin(omega);
+                let omega_c = cos(omega);
                 let alpha = omega_s / (2.0 * q_value);
 
                 let b0 = 1.0;
@@ -408,8 +405,8 @@ impl Coefficients<f64> {
                 })
             }
             Type::BandPass => {
-                let omega_s = omega.sin();
-                let omega_c = omega.cos();
+                let omega_s = sin(omega);
+                let omega_c = cos(omega);
                 let alpha = omega_s / (2.0 * q_value);
 
                 let b0 = omega_s / 2.0;
@@ -430,8 +427,8 @@ impl Coefficients<f64> {
                 })
             }
             Type::AllPass => {
-                let omega_s = omega.sin();
-                let omega_c = omega.cos();
+                let omega_s = sin(omega);
+                let omega_c = cos(omega);
                 let alpha = omega_s / (2.0 * q_value);
 
                 let b0 = 1.0 - alpha;
@@ -450,17 +447,17 @@ impl Coefficients<f64> {
                 })
             }
             Type::LowShelf(db_gain) => {
-                let a = 10.0f64.powf(db_gain / 40.0);
-                let omega_s = omega.sin();
-                let omega_c = omega.cos();
+                let a = pow(10.0f64, db_gain / 40.0);
+                let omega_s = sin(omega);
+                let omega_c = cos(omega);
                 let alpha = omega_s / (2.0 * q_value);
 
-                let b0 = a * ((a + 1.0) - (a - 1.0) * omega_c + 2.0 * alpha * a.sqrt());
+                let b0 = a * ((a + 1.0) - (a - 1.0) * omega_c + 2.0 * alpha * sqrt(a));
                 let b1 = 2.0 * a * ((a - 1.0) - (a + 1.0) * omega_c);
-                let b2 = a * ((a + 1.0) - (a - 1.0) * omega_c - 2.0 * alpha * a.sqrt());
-                let a0 = (a + 1.0) + (a - 1.0) * omega_c + 2.0 * alpha * a.sqrt();
+                let b2 = a * ((a + 1.0) - (a - 1.0) * omega_c - 2.0 * alpha * sqrt(a));
+                let a0 = (a + 1.0) + (a - 1.0) * omega_c + 2.0 * alpha * sqrt(a);
                 let a1 = -2.0 * ((a - 1.0) + (a + 1.0) * omega_c);
-                let a2 = (a + 1.0) + (a - 1.0) * omega_c - 2.0 * alpha * a.sqrt();
+                let a2 = (a + 1.0) + (a - 1.0) * omega_c - 2.0 * alpha * sqrt(a);
 
                 Ok(Coefficients {
                     a1: a1 / a0,
@@ -471,17 +468,17 @@ impl Coefficients<f64> {
                 })
             }
             Type::HighShelf(db_gain) => {
-                let a = 10.0f64.powf(db_gain / 40.0);
-                let omega_s = omega.sin();
-                let omega_c = omega.cos();
+                let a = pow(10.0f64, db_gain / 40.0);
+                let omega_s = sin(omega);
+                let omega_c = cos(omega);
                 let alpha = omega_s / (2.0 * q_value);
 
-                let b0 = a * ((a + 1.0) + (a - 1.0) * omega_c + 2.0 * alpha * a.sqrt());
+                let b0 = a * ((a + 1.0) + (a - 1.0) * omega_c + 2.0 * alpha * sqrt(a));
                 let b1 = -2.0 * a * ((a - 1.0) + (a + 1.0) * omega_c);
-                let b2 = a * ((a + 1.0) + (a - 1.0) * omega_c - 2.0 * alpha * a.sqrt());
-                let a0 = (a + 1.0) - (a - 1.0) * omega_c + 2.0 * alpha * a.sqrt();
+                let b2 = a * ((a + 1.0) + (a - 1.0) * omega_c - 2.0 * alpha * sqrt(a));
+                let a0 = (a + 1.0) - (a - 1.0) * omega_c + 2.0 * alpha * sqrt(a);
                 let a1 = 2.0 * ((a - 1.0) - (a + 1.0) * omega_c);
-                let a2 = (a + 1.0) - (a - 1.0) * omega_c - 2.0 * alpha * a.sqrt();
+                let a2 = (a + 1.0) - (a - 1.0) * omega_c - 2.0 * alpha * sqrt(a);
 
                 Ok(Coefficients {
                     a1: a1 / a0,
@@ -492,9 +489,9 @@ impl Coefficients<f64> {
                 })
             }
             Type::PeakingEQ(db_gain) => {
-                let a = 10.0f64.powf(db_gain / 40.0);
-                let omega_s = omega.sin();
-                let omega_c = omega.cos();
+                let a = pow(10.0f64, db_gain / 40.0);
+                let omega_s = sin(omega);
+                let omega_c = cos(omega);
                 let alpha = omega_s / (2.0 * q_value);
 
                 let b0 = 1.0 + alpha * a;
