@@ -55,18 +55,21 @@
 pub mod coefficients;
 pub mod frequency;
 
+use num_traits::Float;
+
 pub use crate::coefficients::*;
 pub use crate::frequency::*;
 
 /// The required functions of a biquad implementation
-pub trait Biquad<T> {
+pub trait Biquad<T: Float> {
     /// A single iteration of a biquad, applying the filtering on the input
+
     fn run(&mut self, input: T) -> T;
 
     /// Updating of coefficients
     fn update_coefficients(&mut self, new_coefficients: Coefficients<T>);
 
-    /// Updating coefficients and returning the old ones. This is useful to avoid deallocating on the audio thread, since 
+    /// Updating coefficients and returning the old ones. This is useful to avoid deallocating on the audio thread, since
     /// the `Coefficients` can then be sent to another thread for deallocation.
     fn replace_coefficients(&mut self, new_coefficients: Coefficients<T>) -> Coefficients<T>;
 
@@ -84,7 +87,7 @@ pub enum Errors {
 
 /// Internal states and coefficients of the Direct Form 1 form
 #[derive(Copy, Clone, Debug)]
-pub struct DirectForm1<T> {
+pub struct DirectForm1<T: Float> {
     y1: T,
     y2: T,
     x1: T,
@@ -94,27 +97,27 @@ pub struct DirectForm1<T> {
 
 /// Internal states and coefficients of the Direct Form 2 Transposed form
 #[derive(Copy, Clone, Debug)]
-pub struct DirectForm2Transposed<T> {
+pub struct DirectForm2Transposed<T: Float> {
     pub s1: T,
     pub s2: T,
     coeffs: Coefficients<T>,
 }
 
-impl DirectForm1<f32> {
+impl<T: Float> DirectForm1<T> {
     /// Creates a Direct Form 1 biquad from a set of filter coefficients
-    pub fn new(coefficients: Coefficients<f32>) -> Self {
+    pub fn new(coefficients: Coefficients<T>) -> Self {
         DirectForm1 {
-            y1: 0.0_f32,
-            y2: 0.0_f32,
-            x1: 0.0_f32,
-            x2: 0.0_f32,
+            y1: T::zero(),
+            y2: T::zero(),
+            x1: T::zero(),
+            x2: T::zero(),
             coeffs: coefficients,
         }
     }
 }
 
-impl Biquad<f32> for DirectForm1<f32> {
-    fn run(&mut self, input: f32) -> f32 {
+impl<T: Float> Biquad<T> for DirectForm1<T> {
+    fn run(&mut self, input: T) -> T {
         let out = self.coeffs.b0 * input + self.coeffs.b1 * self.x1 + self.coeffs.b2 * self.x2
             - self.coeffs.a1 * self.y1
             - self.coeffs.a2 * self.y2;
@@ -127,78 +130,35 @@ impl Biquad<f32> for DirectForm1<f32> {
         out
     }
 
-    fn update_coefficients(&mut self, new_coefficients: Coefficients<f32>) {
+    fn update_coefficients(&mut self, new_coefficients: Coefficients<T>) {
         self.coeffs = new_coefficients;
     }
 
-    fn replace_coefficients(&mut self, new_coefficients: Coefficients<f32>) -> Coefficients<f32> {
+    fn replace_coefficients(&mut self, new_coefficients: Coefficients<T>) -> Coefficients<T> {
         core::mem::replace(&mut self.coeffs, new_coefficients)
     }
 
     fn reset_state(&mut self) {
-        self.x1 = 0.;
-        self.x2 = 0.;
-        self.y1 = 0.;
-        self.y2 = 0.;
+        self.x1 = T::zero();
+        self.x2 = T::zero();
+        self.y1 = T::zero();
+        self.y2 = T::zero();
     }
 }
 
-impl DirectForm1<f64> {
-    /// Creates a Direct Form 1 biquad from a set of filter coefficients
-    pub fn new(coefficients: Coefficients<f64>) -> Self {
-        DirectForm1 {
-            y1: 0.0_f64,
-            y2: 0.0_f64,
-            x1: 0.0_f64,
-            x2: 0.0_f64,
-            coeffs: coefficients,
-        }
-    }
-}
-
-impl Biquad<f64> for DirectForm1<f64> {
-    fn run(&mut self, input: f64) -> f64 {
-        let out = self.coeffs.b0 * input + self.coeffs.b1 * self.x1 + self.coeffs.b2 * self.x2
-            - self.coeffs.a1 * self.y1
-            - self.coeffs.a2 * self.y2;
-
-        self.x2 = self.x1;
-        self.x1 = input;
-        self.y2 = self.y1;
-        self.y1 = out;
-
-        out
-    }
-
-    fn update_coefficients(&mut self, new_coefficients: Coefficients<f64>) {
-        self.coeffs = new_coefficients;
-    }
-
-    fn replace_coefficients(&mut self, new_coefficients: Coefficients<f64>) -> Coefficients<f64> {
-        core::mem::replace(&mut self.coeffs, new_coefficients)
-    }
-
-    fn reset_state(&mut self) {
-        self.x1 = 0.;
-        self.x2 = 0.;
-        self.y1 = 0.;
-        self.y2 = 0.;
-    }
-}
-
-impl DirectForm2Transposed<f32> {
+impl<T: Float> DirectForm2Transposed<T> {
     /// Creates a Direct Form 2 Transposed biquad from a set of filter coefficients
-    pub fn new(coefficients: Coefficients<f32>) -> Self {
+    pub fn new(coefficients: Coefficients<T>) -> Self {
         DirectForm2Transposed {
-            s1: 0.0_f32,
-            s2: 0.0_f32,
+            s1: T::zero(),
+            s2: T::zero(),
             coeffs: coefficients,
         }
     }
 }
 
-impl Biquad<f32> for DirectForm2Transposed<f32> {
-    fn run(&mut self, input: f32) -> f32 {
+impl<T: Float> Biquad<T> for DirectForm2Transposed<T> {
+    fn run(&mut self, input: T) -> T {
         let out = self.s1 + self.coeffs.b0 * input;
         self.s1 = self.s2 + self.coeffs.b1 * input - self.coeffs.a1 * out;
         self.s2 = self.coeffs.b2 * input - self.coeffs.a2 * out;
@@ -206,54 +166,19 @@ impl Biquad<f32> for DirectForm2Transposed<f32> {
         out
     }
 
-    fn update_coefficients(&mut self, new_coefficients: Coefficients<f32>) {
+    fn update_coefficients(&mut self, new_coefficients: Coefficients<T>) {
         self.coeffs = new_coefficients;
     }
 
-    fn replace_coefficients(&mut self, new_coefficients: Coefficients<f32>) -> Coefficients<f32> {
+    fn replace_coefficients(&mut self, new_coefficients: Coefficients<T>) -> Coefficients<T> {
         core::mem::replace(&mut self.coeffs, new_coefficients)
     }
 
     fn reset_state(&mut self) {
-        self.s1 = 0.;
-        self.s2 = 0.;
+        self.s1 = T::zero();
+        self.s2 = T::zero();
     }
 }
-
-impl DirectForm2Transposed<f64> {
-    /// Creates a Direct Form 2 Transposed biquad from a set of filter coefficients
-    pub fn new(coefficients: Coefficients<f64>) -> Self {
-        DirectForm2Transposed {
-            s1: 0.0_f64,
-            s2: 0.0_f64,
-            coeffs: coefficients,
-        }
-    }
-}
-
-impl Biquad<f64> for DirectForm2Transposed<f64> {
-    fn run(&mut self, input: f64) -> f64 {
-        let out = self.s1 + self.coeffs.b0 * input;
-        self.s1 = self.s2 + self.coeffs.b1 * input - self.coeffs.a1 * out;
-        self.s2 = self.coeffs.b2 * input - self.coeffs.a2 * out;
-
-        out
-    }
-
-    fn update_coefficients(&mut self, new_coefficients: Coefficients<f64>) {
-        self.coeffs = new_coefficients;
-    }
-
-    fn replace_coefficients(&mut self, new_coefficients: Coefficients<f64>) -> Coefficients<f64> {
-        core::mem::replace(&mut self.coeffs, new_coefficients)
-    }
-
-    fn reset_state(&mut self) {
-        self.s1 = 0.;
-        self.s2 = 0.;
-    }
-}
-
 
 #[cfg(test)]
 #[macro_use]
@@ -261,6 +186,7 @@ extern crate std;
 
 #[cfg(test)]
 mod tests {
+
     use crate::*;
 
     #[test]
@@ -302,7 +228,7 @@ mod tests {
     #[test]
     #[should_panic]
     fn test_frequency_panic() {
-        let _f1 = (-10.0).hz();
+        let _f1: Hertz<f32> = (-10.0f32).hz();
     }
 
     #[test]
@@ -323,11 +249,11 @@ mod tests {
 
     #[test]
     fn test_coefficients_normal_f32() {
-        let f0 = 10.hz();
+        let f0 = 100.hz();
         let fs = 1.khz();
 
         let coeffs = Coefficients::<f32>::from_params(Type::LowPass, fs, f0, Q_BUTTERWORTH_F32);
-
+        println!("{:?}", coeffs.unwrap());
         match coeffs {
             Ok(_) => {}
             Err(_) => {
@@ -465,5 +391,138 @@ mod tests {
             output_vec1.push(biquad1.run(elem));
             output_vec2.push(biquad2.run(elem));
         }
+    }
+
+    #[test]
+    fn test_biquad_lowpass_vs_scipy() {
+        use rand::prelude::*;
+        use std::process::Command;
+        use std::string::String;
+        use std::vec::Vec;
+        let normalize_f0 = 0.2;
+        let mut rng = rand::thread_rng();
+
+        let coeffs: Coefficients<f32> = Coefficients::<f32>::from_normalized_params(
+            Type::LowPass,
+            normalize_f0,
+            Q_BUTTERWORTH_F32,
+        )
+        .unwrap();
+
+        let mut biquad = DirectForm1::<f32>::new(coeffs);
+        let mut in_vec = Vec::<f32>::with_capacity(1000);
+        let mut out_vec = Vec::<f32>::with_capacity(1000);
+        for i in 0..in_vec.capacity() {
+            let x = ((i as f32) * 0.1).sin() + rng.gen::<f32>();
+            in_vec.push(x);
+            out_vec.push(biquad.run(x));
+        }
+        let in_vec_str = format!("{:?}", in_vec);
+        let out_vec_str = format!("{:?}", out_vec);
+
+        let cmd_output = Command::new("python")
+            .args([
+                "test/comparaison_lowpass_to_scipy.py",
+                format!("{normalize_f0}").as_str(),
+                in_vec_str.as_str(),
+                out_vec_str.as_str(),
+            ])
+            .output()
+            .expect("You need python and scipy and numpy to run this one.");
+        let py_res_stderr = String::from_utf8(cmd_output.stderr).unwrap();
+        if !py_res_stderr.is_empty() {
+            println!("{:?}", py_res_stderr);
+        }
+        assert!(py_res_stderr.is_empty());
+        let py_res = String::from_utf8(cmd_output.stdout).unwrap();
+        let py_res_parsed_vec: Vec<_> = py_res
+            .split(",")
+            .map_while(|x| {
+                let a = x.trim().parse::<f32>();
+                if let Ok(fl) = a {
+                    return Some(fl);
+                }
+                return None;
+            })
+            .collect();
+        println!("{}", py_res_parsed_vec.len());
+        let sum_err: f32 = py_res_parsed_vec
+            .iter()
+            .zip(out_vec)
+            .map(|(x, y)| (x - y).abs())
+            .sum();
+        let avg_error = sum_err / (in_vec.len() as f32);
+        println!("Sum of absolute error = {sum_err}");
+
+        println!("Average absolute error = {avg_error}");
+
+        assert!(avg_error <= 1e-6);
+    }
+    #[test]
+    fn test_biquad_notch_vs_scipy() {
+        use core::f32::consts::PI;
+        use rand::prelude::*;
+        use std::process::Command;
+        use std::string::String;
+        use std::vec::Vec;
+        let mut rng = rand::thread_rng();
+        let f0 = 0.2;
+        let w0 = PI * f0;
+        let normalize_f01 = f0 / 2.;
+        let normalize_f02 = f0 * 2.;
+        let coeffs: Coefficients<f32> = Coefficients::<f32>::band_0db_from_cutting_frequencies(
+            Type::BandPass,
+            normalize_f01,
+            normalize_f02,
+        )
+        .unwrap();
+        let mut biquad = DirectForm1::<f32>::new(coeffs);
+        let vec_capacity = 1000;
+        let mut in_vec = Vec::<f32>::with_capacity(vec_capacity);
+        let mut out_vec = Vec::<f32>::with_capacity(vec_capacity);
+        for i in 0..vec_capacity {
+            let x = ((i as f32) * w0).sin() + rng.gen::<f32>();
+            in_vec.push(x);
+            out_vec.push(biquad.run(x));
+        }
+        let in_vec_str = format!("{:?}", in_vec);
+        let out_vec_str = format!("{:?}", out_vec);
+
+        let cmd_output = Command::new("python")
+            .args([
+                "test/comparaison_notch_to_scipy.py",
+                format!("{normalize_f01}").as_str(),
+                format!("{normalize_f02}").as_str(),
+                in_vec_str.as_str(),
+                out_vec_str.as_str(),
+            ])
+            .output()
+            .expect("You need python and scipy and numpy to run this one.");
+        let py_res_stderr = String::from_utf8(cmd_output.stderr).unwrap();
+        if !py_res_stderr.is_empty() {
+            println!("{:?}", py_res_stderr);
+        }
+        let py_res = String::from_utf8(cmd_output.stdout).unwrap();
+        let py_res_parsed_vec: Vec<_> = py_res
+            .split(",")
+            .map_while(|x| {
+                let a = x.trim().parse::<f32>();
+                if let Ok(fl) = a {
+                    return Some(fl);
+                }
+                return None;
+            })
+            .collect();
+        let sum_err: f32 = py_res_parsed_vec
+            .iter()
+            .zip(out_vec)
+            .map(|(x, y)| (x - y).abs())
+            .sum();
+        let avg_error = sum_err / (in_vec.len() as f32);
+        println!("Sum of absolute error = {sum_err}");
+        println!("Average absolute error = {avg_error}");
+
+        assert!(avg_error <= 1e-1);
+        assert!(py_res_stderr.is_empty());
     }
 }

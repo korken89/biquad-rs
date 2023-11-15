@@ -10,5 +10,12 @@ license = "MIT OR Apache-2.0"
 repository = "https://github.com/korken89/biquad-rs"
 edition = "2018"
 
+
 [dependencies]
-libm = "0.1.4"
+num-traits = { version = "0.2.16", default-features = false, features = ["libm"] }
+
+[dev-dependencies]
+rand = "0.8.5"
+
+
+
