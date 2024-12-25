@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+## [v0.5.0] - 2024-12-25
+
+### Changes
+
+- Move `libm` to v0.2
+- **BREAKING** Move to `num_traits`
+
+### Added
+
+- Scipy based testing
+
 ## [v0.4.2] - 2022-01-14
 
 ### Fixed
@@ -51,12 +62,3 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ## [v0.2.0]
 
 First changelog.
-
-
-[Unreleased]: https://github.com/korken89/biquad-rs/compare/v0.4.2...master
-[v0.4.1]: https://github.com/korken89/biquad-rs/compare/v0.4.1...v0.4.2
-[v0.4.1]: https://github.com/korken89/biquad-rs/compare/v0.4.0...v0.4.1
-[v0.4.0]: https://github.com/korken89/biquad-rs/compare/v0.3.1...v0.4.0
-[v0.3.1]: https://github.com/korken89/biquad-rs/compare/v0.3.0...v0.3.1
-[v0.3.0]: https://github.com/korken89/biquad-rs/compare/v0.2.0...v0.3.0
-[v0.2.0]: https://github.com/korken89/biquad-rs/compare/v0.1.0...v0.2.0
