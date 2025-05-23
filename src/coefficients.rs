@@ -299,7 +299,7 @@ impl<T: Float> Coefficients<T> {
         f0: Hertz<T>,
         q_value: T,
     ) -> Result<Coefficients<T>, Errors> {
-        let normalized_f0 = f0.hz() / (T::from(2).unwrap() * fs.hz());
+        let normalized_f0 = f0.hz() / (fs.hz() / T::from(2).unwrap());
         Self::from_normalized_params(filter, normalized_f0, q_value)
     }
 
