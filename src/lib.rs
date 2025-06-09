@@ -105,12 +105,15 @@ pub struct DirectForm2Transposed<T: Float> {
 
 impl<T: Float> DirectForm1<T> {
     /// Creates a Direct Form 1 biquad from a set of filter coefficients
-    pub fn new(coefficients: Coefficients<T>) -> Self {
+    pub const fn new(coefficients: Coefficients<T>) -> Self
+    where
+        T: num_traits::ConstZero,
+    {
         DirectForm1 {
-            y1: T::zero(),
-            y2: T::zero(),
-            x1: T::zero(),
-            x2: T::zero(),
+            y1: T::ZERO,
+            y2: T::ZERO,
+            x1: T::ZERO,
+            x2: T::ZERO,
             coeffs: coefficients,
         }
     }
