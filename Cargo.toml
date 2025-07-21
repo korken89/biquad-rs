@@ -2,7 +2,7 @@
 name = "biquad"
 version = "0.5.0"
 authors = ["Emil Fresk <emil.fresk@gmail.com>"]
-description = "A library for digital second order IIR filtrers, also known as biquads."
+description = "A library for digital second order IIR filters, also known as biquads."
 categories = ["embedded", "no-std"]
 keywords = ["biquad", "filter", "iir"]
 readme = "README.md"
