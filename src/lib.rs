@@ -55,23 +55,25 @@
 pub mod coefficients;
 pub mod frequency;
 
-use num_traits::Float;
+use core::ops::{Add, Mul, Sub};
+
+use num_traits::Zero;
 
 pub use crate::coefficients::*;
 pub use crate::frequency::*;
 
 /// The required functions of a biquad implementation
-pub trait Biquad<T: Float> {
+pub trait Biquad<C, T = C> {
     /// A single iteration of a biquad, applying the filtering on the input
 
     fn run(&mut self, input: T) -> T;
 
     /// Updating of coefficients
-    fn update_coefficients(&mut self, new_coefficients: Coefficients<T>);
+    fn update_coefficients(&mut self, new_coefficients: Coefficients<C>);
 
     /// Updating coefficients and returning the old ones. This is useful to avoid deallocating on the audio thread, since
     /// the `Coefficients` can then be sent to another thread for deallocation.
-    fn replace_coefficients(&mut self, new_coefficients: Coefficients<T>) -> Coefficients<T>;
+    fn replace_coefficients(&mut self, new_coefficients: Coefficients<C>) -> Coefficients<C>;
 
     /// Set the internal state of the biquad to 0 without allocation.
     fn reset_state(&mut self);
@@ -87,25 +89,28 @@ pub enum Errors {
 
 /// Internal states and coefficients of the Direct Form 1 form
 #[derive(Copy, Clone, Debug)]
-pub struct DirectForm1<T: Float> {
+pub struct DirectForm1<C, T = C> {
     y1: T,
     y2: T,
     x1: T,
     x2: T,
-    coeffs: Coefficients<T>,
+    coeffs: Coefficients<C>,
 }
 
 /// Internal states and coefficients of the Direct Form 2 Transposed form
 #[derive(Copy, Clone, Debug)]
-pub struct DirectForm2Transposed<T: Float> {
+pub struct DirectForm2Transposed<C, T = C> {
     pub s1: T,
     pub s2: T,
-    coeffs: Coefficients<T>,
+    coeffs: Coefficients<C>,
 }
 
-impl<T: Float> DirectForm1<T> {
+impl<C, T> DirectForm1<C, T>
+where
+    T: Zero,
+{
     /// Creates a Direct Form 1 biquad from a set of filter coefficients
-    pub fn new(coefficients: Coefficients<T>) -> Self {
+    pub fn new(coefficients: Coefficients<C>) -> Self {
         DirectForm1 {
             y1: T::zero(),
             y2: T::zero(),
@@ -116,7 +121,11 @@ impl<T: Float> DirectForm1<T> {
     }
 }
 
-impl<T: Float> Biquad<T> for DirectForm1<T> {
+impl<C, T> Biquad<C, T> for DirectForm1<C, T>
+where
+    T: Copy + Add<T, Output = T> + Sub<T, Output = T> + Zero,
+    C: Copy + Mul<T, Output = T>,
+{
     fn run(&mut self, input: T) -> T {
         let out = self.coeffs.b0 * input + self.coeffs.b1 * self.x1 + self.coeffs.b2 * self.x2
             - self.coeffs.a1 * self.y1
@@ -130,11 +139,11 @@ impl<T: Float> Biquad<T> for DirectForm1<T> {
         out
     }
 
-    fn update_coefficients(&mut self, new_coefficients: Coefficients<T>) {
+    fn update_coefficients(&mut self, new_coefficients: Coefficients<C>) {
         self.coeffs = new_coefficients;
     }
 
-    fn replace_coefficients(&mut self, new_coefficients: Coefficients<T>) -> Coefficients<T> {
+    fn replace_coefficients(&mut self, new_coefficients: Coefficients<C>) -> Coefficients<C> {
         core::mem::replace(&mut self.coeffs, new_coefficients)
     }
 
@@ -146,9 +155,9 @@ impl<T: Float> Biquad<T> for DirectForm1<T> {
     }
 }
 
-impl<T: Float> DirectForm2Transposed<T> {
+impl<C, T> DirectForm2Transposed<C, T> where T: Zero {
     /// Creates a Direct Form 2 Transposed biquad from a set of filter coefficients
-    pub fn new(coefficients: Coefficients<T>) -> Self {
+    pub fn new(coefficients: Coefficients<C>) -> Self {
         DirectForm2Transposed {
             s1: T::zero(),
             s2: T::zero(),
@@ -157,7 +166,11 @@ impl<T: Float> DirectForm2Transposed<T> {
     }
 }
 
-impl<T: Float> Biquad<T> for DirectForm2Transposed<T> {
+impl<C, T> Biquad<C, T> for DirectForm2Transposed<C, T>
+where
+    T: Copy + Add<T, Output = T> + Sub<T, Output = T> + Zero,
+    C: Copy + Mul<T, Output = T>,
+{
     fn run(&mut self, input: T) -> T {
         let out = self.s1 + self.coeffs.b0 * input;
         self.s1 = self.s2 + self.coeffs.b1 * input - self.coeffs.a1 * out;
@@ -166,11 +179,11 @@ impl<T: Float> Biquad<T> for DirectForm2Transposed<T> {
         out
     }
 
-    fn update_coefficients(&mut self, new_coefficients: Coefficients<T>) {
+    fn update_coefficients(&mut self, new_coefficients: Coefficients<C>) {
         self.coeffs = new_coefficients;
     }
 
-    fn replace_coefficients(&mut self, new_coefficients: Coefficients<T>) -> Coefficients<T> {
+    fn replace_coefficients(&mut self, new_coefficients: Coefficients<C>) -> Coefficients<C> {
         core::mem::replace(&mut self.coeffs, new_coefficients)
     }
 
